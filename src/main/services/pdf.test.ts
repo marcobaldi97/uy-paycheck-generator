@@ -10,6 +10,7 @@ import { openTestDb } from '../db/testing'
 import { empresaRepo } from '../repos/empresa'
 import { liquidacionesRepo } from '../repos/liquidaciones'
 import { trabajadoresRepo } from '../repos/trabajadores'
+import { liquidacionesService } from './liquidaciones'
 
 // ---------------------------------------------------------------- electron fakes
 
@@ -231,6 +232,24 @@ describe('datosImpresion', () => {
     expect(pdf.datosImpresion(liq.id, recibos[1]!.id, db).map((d) => d.reciboId)).toEqual([recibos[1]!.id])
     expect(() => pdf.datosImpresion(liq.id, otra.recibos[0]!.id, db)).toThrow(AppError)
     expect(() => pdf.datosImpresion(9999, null, db)).toThrow(AppError)
+  })
+
+  it('matches the editor preview; without empresa the preview is blank and printing fails', () => {
+    const { liq, recibos } = crearLiquidacion(['Ana Pérez', 'Bruno Díaz'])
+    const servicio = liquidacionesService(db)
+    const datos = pdf.datosImpresion(liq.id, null, db)
+    expect(recibos.map((r) => servicio.obtenerRecibo(r.id).impresion)).toEqual(datos)
+
+    db.$client.prepare('DELETE FROM empresa').run()
+    expect(servicio.obtenerRecibo(recibos[0]!.id).impresion.empresa).toEqual({
+      nombre: '',
+      direccion: '',
+      rut: '',
+      nroMtss: '',
+      grupo: '',
+      subgrupo: '',
+    })
+    expect(() => pdf.datosImpresion(liq.id, null, db)).toThrow(/empresa/)
   })
 
   it('returns an empty list for a liquidación without receipts', () => {

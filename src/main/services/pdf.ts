@@ -10,21 +10,18 @@ import { app, BrowserWindow, dialog, type WebContents } from 'electron'
 import dayjs from 'dayjs'
 import { AppError } from '@shared/api'
 import type {
-  Empresa,
   Impresora,
   IsoDate,
   Liquidacion,
   ModoExportacion,
   ReciboImpresion,
   ResultadoExportacion,
-  TrabajadorSnapshot,
 } from '@shared/types'
 import type { Conn } from '../db/connection'
 import { getDb } from '../db/connection'
 import { loadRenderer, secureWebPreferences } from '../lib/window'
-import { empresaRepo } from '../repos/empresa'
 import { liquidacionesRepo, type ReciboRow } from '../repos/liquidaciones'
-import { trabajadoresRepo } from '../repos/trabajadores'
+import { constructorImpresion } from './impresion'
 
 /** How long main waits for the print route to call `pdf.listo()`. */
 export const LISTO_TIMEOUT_MS = 30_000
@@ -32,9 +29,8 @@ export const LISTO_TIMEOUT_MS = 30_000
 // ---------------------------------------------------------------- data for the print route
 
 /**
- * Receipts as printed, ordered by worker número. An emitida liquidación uses the snapshots stored
- * on each recibo; a borrador uses the current empresa and worker (sueldo nominal from the
- * condition in force on the last day of the period). Throws NO_ENCONTRADO.
+ * Receipts as printed, ordered by worker número, built with the same rules as the editor preview
+ * (see ./impresion). Throws NO_ENCONTRADO, also when no empresa is saved for a borrador.
  */
 export function datosImpresion(
   liquidacionId: number,
@@ -56,37 +52,8 @@ export function datosImpresion(
     rows = [row]
   }
 
-  let empresaActual: Empresa | null | undefined
-  const getEmpresaActual = (): Empresa => {
-    if (empresaActual === undefined) empresaActual = empresaRepo(db).get()
-    if (!empresaActual) {
-      throw new AppError('NO_ENCONTRADO', 'Complete los datos de la empresa antes de imprimir')
-    }
-    return empresaActual
-  }
-
-  return rows.map((row) => ({
-    reciboId: row.id,
-    empresa: row.snapshotEmpresa ?? getEmpresaActual(),
-    trabajador: row.snapshotTrabajador ?? trabajadorActual(db, row.trabajadorId, liquidacion),
-    liquidacion: {
-      periodo: liquidacion.periodo,
-      fechaCargo: liquidacion.fechaCargo,
-      fechaPago: liquidacion.fechaPago,
-    },
-    lineas: liquidaciones.getLineas(row.id),
-    totales: row.totales,
-  }))
-}
-
-function trabajadorActual(db: Conn, trabajadorId: number, liquidacion: Liquidacion): TrabajadorSnapshot {
-  const repo = trabajadoresRepo(db)
-  const trabajador = repo.get(trabajadorId)
-  if (!trabajador) throw new AppError('NO_ENCONTRADO', 'Trabajador no encontrado')
-  const finDePeriodo = dayjs(`${liquidacion.periodo}-01`).endOf('month').format('YYYY-MM-DD')
-  const condicion = repo.condicionVigente(trabajadorId, finDePeriodo)
-  const { activo: _activo, ...datos } = trabajador
-  return { ...datos, sueldoNominal: condicion?.sueldoNominal ?? 0 }
+  const construir = constructorImpresion(db, liquidacion, { sinEmpresa: 'error' })
+  return rows.map((row) => construir(row, liquidaciones.getLineas(row.id)))
 }
 
 // ---------------------------------------------------------------- file names

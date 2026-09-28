@@ -8,14 +8,11 @@
 // frozen: their recibos carry snapshots of empresa and trabajador, and every write is rejected
 // with LIQUIDACION_EMITIDA.
 
-import dayjs from 'dayjs'
 import { calcularRecibo, type CalcularReciboResultado } from '@engine/index'
 import { AppError } from '@shared/api'
 import type {
   CodigoConcepto,
   Condicion,
-  Empresa,
-  IsoDate,
   Linea,
   Liquidacion,
   LiquidacionDetalle,
@@ -25,9 +22,7 @@ import type {
   Periodo,
   ReciboDetalle,
   ReciboEntradas,
-  ReciboImpresion,
   Trabajador,
-  TrabajadorSnapshot,
   ValoresCalculados,
 } from '@shared/types'
 import { getDb, type Conn } from '../db/connection'
@@ -36,32 +31,11 @@ import { empresaRepo } from '../repos/empresa'
 import { liquidacionesRepo, type ReciboData, type ReciboRow } from '../repos/liquidaciones'
 import { parametrosRepo } from '../repos/parametros'
 import { trabajadoresRepo } from '../repos/trabajadores'
+import { constructorImpresion, fechaResolucion, snapshotTrabajador, sueldoImpreso } from './impresion'
 
 export const ENTRADAS_VACIAS: ReciboEntradas = { diasNoTrabajados: 0, lineasManuales: [], overrides: null }
 
-const EMPRESA_VACIA: Empresa = { nombre: '', direccion: '', rut: '', nroMtss: '', grupo: '', subgrupo: '' }
-
-/** Date used to resolve conditions and parameters for a period: its last day. */
-export function fechaResolucion(periodo: Periodo): IsoDate {
-  return dayjs(`${periodo}-01`).endOf('month').format('YYYY-MM-DD')
-}
-
-function snapshotTrabajador(t: Trabajador, sueldoNominal: number): TrabajadorSnapshot {
-  return {
-    id: t.id,
-    numero: t.numero,
-    ci: t.ci,
-    nombre: t.nombre,
-    cargo: t.cargo,
-    fechaIngreso: t.fechaIngreso,
-    afiliacionBps: t.afiliacionBps,
-    carpetaBse: t.carpetaBse,
-    lugarCobro: t.lugarCobro,
-    centroCostos: t.centroCostos,
-    lugarTrabajo: t.lugarTrabajo,
-    sueldoNominal,
-  }
-}
+export { fechaResolucion }
 
 function toReciboData(entradas: ReciboEntradas, r: CalcularReciboResultado): ReciboData {
   return {
@@ -186,37 +160,6 @@ export function liquidacionesService(db: Conn = getDb()) {
     return t
   }
 
-  /**
-   * sueldoNominal as printed: the condición vigente on the last day of the period (same rule as
-   * pdf.datosImpresion in T7); falls back to the stored SUELDO line if there is no condición.
-   */
-  function sueldoDe(lineas: Linea[], condicion: Condicion | null): number {
-    return condicion?.sueldoNominal ?? lineas.find((l) => l.codigo === 'SUELDO')?.importe ?? 0
-  }
-
-  /**
-   * Print data, with the same rules as pdf.datosImpresion (T7): snapshots for an emitida, current
-   * empresa and worker for a borrador. One difference: with no empresa saved yet, the editor
-   * preview gets blank empresa fields instead of an error, so a draft stays editable.
-   */
-  function impresion(conn: Conn, liq: Liquidacion, row: ReciboRow, lineas: Linea[]): ReciboImpresion {
-    let empresa = row.snapshotEmpresa
-    let trabajador = row.snapshotTrabajador
-    if (!empresa) empresa = empresaRepo(conn).get() ?? EMPRESA_VACIA
-    if (!trabajador) {
-      const condicion = trabajadoresRepo(conn).condicionVigente(row.trabajadorId, fechaResolucion(liq.periodo))
-      trabajador = snapshotTrabajador(trabajadorDe(conn, row.trabajadorId), sueldoDe(lineas, condicion))
-    }
-    return {
-      reciboId: row.id,
-      empresa,
-      trabajador,
-      liquidacion: { periodo: liq.periodo, fechaCargo: liq.fechaCargo, fechaPago: liq.fechaPago },
-      lineas,
-      totales: row.totales,
-    }
-  }
-
   function valoresCalculados(conn: Conn, liq: Liquidacion, row: ReciboRow, lineas: Linea[]): ValoresCalculados {
     const fecha = fechaResolucion(liq.periodo)
     const parametros = parametrosRepo(conn).vigente(fecha)
@@ -240,7 +183,8 @@ export function liquidacionesService(db: Conn = getDb()) {
       valoresCalculados: valoresCalculados(conn, liq, row, lineas),
       lineas,
       totales: row.totales,
-      impresion: impresion(conn, liq, row, lineas),
+      // Blank empresa fields when none is saved yet, so a draft stays editable.
+      impresion: constructorImpresion(conn, liq, { sinEmpresa: 'vacia' })(row, lineas),
     }
   }
 
@@ -329,7 +273,7 @@ export function liquidacionesService(db: Conn = getDb()) {
         const fecha = fechaResolucion(liq.periodo)
         for (const r of repo.listRecibos(id)) {
           const condicion = trabajadoresRepo(tx).condicionVigente(r.trabajadorId, fecha)
-          const sueldo = sueldoDe(repo.getLineas(r.id), condicion)
+          const sueldo = sueldoImpreso(repo.getLineas(r.id), condicion)
           repo.setSnapshots(r.id, empresa, snapshotTrabajador(trabajadorDe(tx, r.trabajadorId), sueldo))
         }
         return detalle(tx, repo.setEstado(id, 'emitida'))
