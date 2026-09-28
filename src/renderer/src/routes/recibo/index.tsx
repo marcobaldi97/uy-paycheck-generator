@@ -2,13 +2,14 @@
 // Right: live preview. Edits autosave; main recomputes and returns the recibo, which feeds the
 // computed lines and the preview. Read-only while the liquidación is emitida.
 
-import { Alert, Anchor, Badge, Grid, Group, Loader, NumberInput, Paper, Stack, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Avatar, Badge, Grid, Group, Loader, NumberInput, Paper, Stack, Text, Title } from '@mantine/core'
 import type { Overrides, ReciboDetalle, ReciboEntradas } from '@shared/types'
 import { formatMoney } from '@shared/money'
 import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { errorMessage } from '../../api/client'
 import { useRecibo } from '../../api/hooks'
+import { PageHeader } from '../../components/PageHeader'
 import { paths } from '../../paths'
 import { conOverride, type OverrideKey } from './entradas'
 import { LineasAuto } from './LineasAuto'
@@ -48,7 +49,7 @@ function ReciboEditorCarga({
 }) {
   const recibo = useRecibo(reciboId)
   const volver = (
-    <Anchor component={Link} to={paths.liquidacion(liquidacionId)} size="sm">
+    <Anchor component={Link} to={paths.liquidacion(liquidacionId)} size="sm" c="dimmed" underline="hover">
       ← Volver a la liquidación
     </Anchor>
   )
@@ -120,18 +121,23 @@ function ReciboEditor({ detalle, volver, autosaveMs, onEmitida }: ReciboEditorPr
   return (
     <Stack gap="md">
       {volver}
-      <Group justify="space-between" align="flex-start">
-        <div>
-          <Title order={2}>{trabajador.nombre}</Title>
-          <Text c="dimmed">Recibo del período {formatPeriodo(liquidacion.periodo)}</Text>
+      <Group gap="md" wrap="nowrap" align="center">
+        <Avatar color="forest" radius="xl" size={56} name={trabajador.nombre} />
+        <div style={{ flex: 1 }}>
+          <PageHeader
+            title={trabajador.nombre}
+            subtitle={`Recibo del período ${formatPeriodo(liquidacion.periodo)}`}
+            actions={
+              soloLectura ? (
+                <Badge color="gray" variant="light" size="lg">
+                  Emitida · solo lectura
+                </Badge>
+              ) : (
+                <IndicadorGuardado estado={estado} />
+              )
+            }
+          />
         </div>
-        {soloLectura ? (
-          <Badge color="gray" size="lg">
-            Emitida · solo lectura
-          </Badge>
-        ) : (
-          <IndicadorGuardado estado={estado} />
-        )}
       </Group>
 
       {soloLectura && (
@@ -148,7 +154,7 @@ function ReciboEditor({ detalle, volver, autosaveMs, onEmitida }: ReciboEditorPr
       <Grid gap="lg">
         <Grid.Col span={{ base: 12, lg: 6 }}>
           <Stack gap="md">
-            <Paper withBorder p="md">
+            <Paper withBorder radius="lg" p="lg">
               <NumberInput
                 label="Días no trabajados"
                 description="Se descuentan del sueldo mensual"
@@ -168,8 +174,8 @@ function ReciboEditor({ detalle, volver, autosaveMs, onEmitida }: ReciboEditorPr
               />
             </Paper>
 
-            <Paper withBorder p="md">
-              <Title order={4} mb="sm">
+            <Paper withBorder radius="lg" p="lg">
+              <Title order={3} fz={16} ff="var(--mantine-font-family)" fw={600} mb="sm">
                 Líneas manuales
               </Title>
               <LineasManuales
@@ -179,8 +185,8 @@ function ReciboEditor({ detalle, volver, autosaveMs, onEmitida }: ReciboEditorPr
               />
             </Paper>
 
-            <Paper withBorder p="md">
-              <Title order={4} mb="sm">
+            <Paper withBorder radius="lg" p="lg">
+              <Title order={3} fz={16} ff="var(--mantine-font-family)" fw={600} mb="sm">
                 Conceptos calculados
               </Title>
               <LineasAuto
@@ -192,7 +198,7 @@ function ReciboEditor({ detalle, volver, autosaveMs, onEmitida }: ReciboEditorPr
               />
             </Paper>
 
-            <Paper withBorder p="md">
+            <Paper radius="lg" p="lg" style={{ background: '#17211E' }}>
               <Group justify="space-between" grow>
                 <Total label="Total haberes" value={detalle.totales.totalHaberes} />
                 <Total label="Total descuentos" value={detalle.totales.totalDescuentos} />
@@ -214,10 +220,10 @@ function ReciboEditor({ detalle, volver, autosaveMs, onEmitida }: ReciboEditorPr
 
 function IndicadorGuardado({ estado }: { estado: EstadoGuardado }) {
   const { label, color } = {
-    guardado: { label: 'Cambios guardados', color: 'green' },
-    pendiente: { label: 'Cambios sin guardar', color: 'yellow' },
+    guardado: { label: 'Cambios guardados', color: 'forest' },
+    pendiente: { label: 'Cambios sin guardar', color: 'amber' },
     guardando: { label: 'Guardando…', color: 'blue' },
-    invalido: { label: 'Datos incompletos', color: 'yellow' },
+    invalido: { label: 'Datos incompletos', color: 'amber' },
     error: { label: 'Error al guardar', color: 'red' },
   }[estado.tipo]
   return (
@@ -230,10 +236,16 @@ function IndicadorGuardado({ estado }: { estado: EstadoGuardado }) {
 function Total({ label, value, fuerte = false }: { label: string; value: number; fuerte?: boolean }) {
   return (
     <div>
-      <Text size="xs" c="dimmed">
+      <Text size="sm" c="#B9C6C0">
         {label}
       </Text>
-      <Text fw={fuerte ? 700 : 500} data-testid={`total-${label}`}>
+      <Text
+        c="white"
+        fw={fuerte ? 500 : 600}
+        fz={fuerte ? 28 : 20}
+        ff={fuerte ? 'var(--mantine-font-family-headings)' : undefined}
+        data-testid={`total-${label}`}
+      >
         {formatMoney(value)}
       </Text>
     </div>

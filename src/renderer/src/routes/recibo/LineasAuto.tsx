@@ -67,7 +67,7 @@ export function LineasAuto({ lineas, overrides, valoresCalculados, onOverride, d
                 <Group gap={6} wrap="nowrap">
                   <Text size="sm">{fila.descripcion}</Text>
                   {modificado && (
-                    <Badge size="xs" color="orange" variant="light">
+                    <Badge size="sm" color="amber" variant="light">
                       Modificado
                     </Badge>
                   )}
