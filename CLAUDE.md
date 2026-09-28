@@ -50,15 +50,15 @@ src/preload    exposes window.api only.
 src/renderer   UI only. No Electron, Node, DB, engine.
 ```
 
-ESLint (`no-restricted-imports`) enforces these. Aliases: `@shared/*`, `@engine/*` (main only), `@renderer/*`.
+ESLint (`no-restricted-imports`) enforces these. Aliases: `@shared/*`, `@engine/*` (master only), `@renderer/*`.
 
 Windows use `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true` via `secureWebPreferences()` in `src/main/lib/window.ts`.
 
 ## IPC contract
 
-- `src/shared/types.ts` and `src/shared/api.ts` are **frozen**. If a task needs a change, stop and report it; the change goes to `main` as one small commit and open worktrees rebase onto it.
+- `src/shared/types.ts` and `src/shared/api.ts` are **frozen**. If a task needs a change, stop and report it; the change goes to `master` as one small commit and open worktrees rebase onto it.
 - `ApiSpec` in `api.ts` lists every method as `{ input, output }`. `window.api.<domain>.<method>(input)` resolves to `ApiResult<T>` = `{ ok: true, data } | { ok: false, error: { code, message, details? } }`. It never rejects for domain errors.
-- Every input is validated in main with `inputSchemas[domain][method]` from `src/shared/schemas.ts`.
+- Every input is validated in master with `inputSchemas[domain][method]` from `src/shared/schemas.ts`.
 
 Implementing a handler (T5–T8): one file per domain in `src/main/ipc/`, exporting `register()`. `src/main/index.ts` picks up every `src/main/ipc/*.ts` automatically.
 
@@ -94,5 +94,5 @@ Throw `new AppError(code, 'mensaje en español', details?)` for expected failure
 
 Each task only creates or edits the files it owns (table in `PLAN.md`). T0 also owns `src/main/lib/**`, `src/renderer/src/paths.ts`, `src/renderer/src/test/**` and `components/Placeholder.tsx`. Only T13 edits files owned by other tasks.
 
-- Don't edit `drizzle/` outside T2; a later schema change is a new migration on `main`.
+- Don't edit `drizzle/` outside T2; a later schema change is a new migration on `master`.
 - Running `npm run dev` in several worktrees at once: set `RENDERER_PORT=5174` (etc.) in `.env.local`.
