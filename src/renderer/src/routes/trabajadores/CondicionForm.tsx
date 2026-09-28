@@ -51,7 +51,6 @@ export function CondicionForm({ initialValues, onGuardar, onCancelar }: Condicio
             label="Sueldo nominal"
             withAsterisk
             {...form.getInputProps('sueldoNominal')}
-            value={form.values.sueldoNominal}
           />
         </SimpleGrid>
 
@@ -97,7 +96,6 @@ export function CondicionForm({ initialValues, onGuardar, onCancelar }: Condicio
           <MoneyInput
             label="Otras deducciones (mensual)"
             {...form.getInputProps('irpfOtrasDeducciones')}
-            value={form.values.irpfOtrasDeducciones}
           />
         </SimpleGrid>
 

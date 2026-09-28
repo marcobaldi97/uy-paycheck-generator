@@ -7,7 +7,7 @@ import type { Cents } from '@shared/types'
 import { useState, type FocusEvent } from 'react'
 
 export interface MoneyInputProps extends Omit<TextInputProps, 'value' | 'defaultValue' | 'onChange' | 'type'> {
-  value: Cents | null | undefined
+  value?: Cents | null
   /** Called with cents for valid text, null for empty text. Not called while the text is invalid. */
   onChange?: (value: Cents | null) => void
   /** Accept negative amounts. Default false. */
