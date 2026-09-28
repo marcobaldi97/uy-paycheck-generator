@@ -1,12 +1,14 @@
-import { AppShell, NavLink, ScrollArea, Stack, Title } from '@mantine/core'
+import { AppShell, NavLink, ScrollArea, Stack } from '@mantine/core'
 import { Link, Outlet, useLocation } from 'react-router'
 import { paths } from '../paths'
+import { Icon, type IconName } from './Icon'
+import classes from './Layout.module.css'
 
-const mainLinks = [
-  { label: 'Liquidaciones', to: paths.liquidaciones() },
-  { label: 'Trabajadores', to: paths.trabajadores() },
-  { label: 'Parámetros', to: paths.parametros() },
-  { label: 'Empresa', to: paths.empresa() },
+const mainLinks: { label: string; to: string; icon: IconName }[] = [
+  { label: 'Liquidaciones', to: paths.liquidaciones(), icon: 'liquidaciones' },
+  { label: 'Trabajadores', to: paths.trabajadores(), icon: 'trabajadores' },
+  { label: 'Parámetros', to: paths.parametros(), icon: 'parametros' },
+  { label: 'Empresa', to: paths.empresa(), icon: 'empresa' },
 ]
 
 export function Layout() {
@@ -14,31 +16,46 @@ export function Layout() {
   const isActive = (to: string) => pathname === to || pathname.startsWith(`${to}/`)
 
   return (
-    <AppShell navbar={{ width: 220, breakpoint: 0 }} padding="lg">
-      <AppShell.Navbar p="sm">
+    <AppShell
+      navbar={{ width: 248, breakpoint: 0 }}
+      padding={{ base: 'lg', lg: 40 }}
+      styles={{ main: { background: 'transparent' } }}
+    >
+      <AppShell.Navbar p="md" className={classes.navbar}>
         <AppShell.Section>
-          <Title order={4} px="sm" py="xs">
-            Recibos de sueldo
-          </Title>
+          <div className={classes.brand}>
+            <div className={classes.mark} aria-hidden="true">
+              R
+            </div>
+            <div className={classes.brandName}>
+              Recibos
+              <br />
+              de sueldo
+            </div>
+          </div>
         </AppShell.Section>
         <AppShell.Section grow component={ScrollArea}>
-          <Stack gap={2}>
+          <Stack gap={4}>
             {mainLinks.map((link) => (
               <NavLink
                 key={link.to}
+                className={classes.link}
                 component={Link}
                 to={link.to}
                 label={link.label}
+                leftSection={<Icon name={link.icon} />}
                 active={isActive(link.to)}
               />
             ))}
           </Stack>
         </AppShell.Section>
-        <AppShell.Section>
+        <AppShell.Section className={classes.footer}>
           <NavLink
+            className={classes.link}
             component={Link}
             to={paths.respaldo()}
             label="Respaldo"
+            leftSection={<Icon name="respaldo" />}
             active={isActive(paths.respaldo())}
           />
         </AppShell.Section>

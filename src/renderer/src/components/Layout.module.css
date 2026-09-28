@@ -1,0 +1,56 @@
+.navbar {
+  background: #17211e;
+  border: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  margin-bottom: 24px;
+}
+
+.mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #e3efea;
+  color: #1f5c4d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mantine-font-family-headings);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.brandName {
+  font-family: var(--mantine-font-family-headings);
+  font-size: 18px;
+  line-height: 1.15;
+  color: #f6f3ec;
+}
+
+.link {
+  height: 44px;
+  border-radius: 10px;
+  color: #b9c6c0;
+  font-size: 15px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+  }
+
+  &[data-active] {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-weight: 600;
+  }
+}
+
+.footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 4px;
+}

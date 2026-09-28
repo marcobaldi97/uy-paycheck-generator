@@ -2,8 +2,9 @@ import '@mantine/core/styles.css'
 import '@mantine/dates/styles.css'
 import '@mantine/notifications/styles.css'
 import 'dayjs/locale/es'
+import './theme.css'
 
-import { createTheme, MantineProvider } from '@mantine/core'
+import { MantineProvider } from '@mantine/core'
 import { DatesProvider } from '@mantine/dates'
 import { ModalsProvider } from '@mantine/modals'
 import { Notifications } from '@mantine/notifications'
@@ -12,8 +13,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router/dom'
 import { router } from './router'
-
-const theme = createTheme({})
+import { cssVariablesResolver, theme } from './theme'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,7 +24,7 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <MantineProvider theme={theme} defaultColorScheme="light">
+    <MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver} defaultColorScheme="light">
       <DatesProvider settings={{ locale: 'es', firstDayOfWeek: 1 }}>
         <ModalsProvider>
           <Notifications />
