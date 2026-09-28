@@ -43,7 +43,12 @@ describe('Recibo (Carmona 08/2024)', () => {
     expect(texto).toContain('EMPRESA DE PRUEBA S.A.')
     expect(texto).toContain('RUT: 211234560018')
     expect(texto).toContain('Nº MTSS: 1234567')
-    expect(texto).toContain('Período: 08/2024')
+    expect(texto).toContain('Remuneración: 08/2024')
+    expect(texto).toContain('Recibí conforme el importe neto de esta liquidación y una copia de la misma.')
+    expect(texto).toContain(
+      'La empresa declara haber efectuado los aportes de seguridad social correspondientes al mes anterior.',
+    )
+    expect(texto).toContain('Fecha: 05/09/2024')
     expect(texto).toContain('Tipo de liquidación: N')
     expect(texto).toContain('Fecha de cargo: 31/08/2024')
     expect(texto).toContain('Fecha de pago: 05/09/2024')

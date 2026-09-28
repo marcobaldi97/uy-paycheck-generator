@@ -63,7 +63,7 @@ export function ReciboEjemplar({ datos, ejemplar }: { datos: ReciboImpresion; ej
           <p className={classes.tituloTexto}>RECIBO DE SUELDO</p>
           <span className={classes.ejemplar}>{ejemplar}</span>
           <p className={classes.linea}>
-            <Etiqueta>Período:</Etiqueta> {formatPeriodo(liquidacion.periodo)}
+            <Etiqueta>Remuneración:</Etiqueta> {formatPeriodo(liquidacion.periodo)}
           </p>
           <p className={classes.linea}>
             <Etiqueta>Tipo de liquidación:</Etiqueta> {TIPO_LIQUIDACION}
@@ -81,7 +81,7 @@ export function ReciboEjemplar({ datos, ejemplar }: { datos: ReciboImpresion; ej
         <Campo etiqueta="Nº:" valor={String(trabajador.numero)} />
         <Campo etiqueta="Nombre:" valor={trabajador.nombre} ancho />
         <Campo etiqueta="C.I.:" valor={trabajador.ci} />
-        <Campo etiqueta="Cargo:" valor={trabajador.cargo} ancho />
+        <Campo etiqueta="Cargo y categoría:" valor={trabajador.cargo} ancho />
         <Campo etiqueta="Fecha de ingreso:" valor={formatFecha(trabajador.fechaIngreso)} />
         <Campo etiqueta="Sueldo nominal:" valor={formatMoney(trabajador.sueldoNominal)} />
         <Campo etiqueta="Afiliación BPS:" valor={trabajador.afiliacionBps} />
@@ -161,10 +161,21 @@ export function ReciboEjemplar({ datos, ejemplar }: { datos: ReciboImpresion; ej
           </div>
         </div>
         <div className={classes.firma}>
-          <p className={classes.linea}>
-            Recibí conforme el importe líquido de la presente liquidación y copia de este recibo.
-          </p>
-          <div className={classes.firmaLinea}>Firma del trabajador</div>
+          <div className={classes.declaracion}>
+            <p className={classes.linea}>
+              Recibí conforme el importe neto de esta liquidación y una copia de la misma.
+            </p>
+            <p className={classes.linea}>
+              La empresa declara haber efectuado los aportes de seguridad social correspondientes al mes
+              anterior.
+            </p>
+          </div>
+          <div>
+            <div className={classes.firmaLinea}>Firma del trabajador</div>
+            <p className={classes.firmaFecha}>
+              <Etiqueta>Fecha:</Etiqueta> {formatFecha(liquidacion.fechaPago)}
+            </p>
+          </div>
         </div>
       </footer>
     </section>

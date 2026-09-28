@@ -184,6 +184,15 @@
   margin-top: 5mm;
 }
 
+.declaracion {
+  flex: 1;
+}
+
+.firmaFecha {
+  margin: 1mm 0 0;
+  text-align: center;
+}
+
 .firmaLinea {
   width: 65mm;
   padding-top: 1mm;
