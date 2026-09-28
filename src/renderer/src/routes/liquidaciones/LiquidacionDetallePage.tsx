@@ -1,5 +1,5 @@
 // One liquidación: a row per worker with haberes, descuentos and líquido, a totals footer,
-// and the actions Recalcular, Emitir, Reabrir, Exportar PDF and Imprimir.
+// and the actions Recalcular, Emitir, Reabrir, Vista previa, Exportar PDF and Imprimir.
 
 import {
   Alert,
@@ -34,6 +34,7 @@ import { ConfirmarModal } from './ConfirmarModal'
 import { EstadoBadge } from './EstadoBadge'
 import { nombrePeriodo } from './formato'
 import { ImprimirModal } from './ImprimirModal'
+import { VistaPreviaModal } from './VistaPreviaModal'
 
 function parseId(value: string | undefined): number | null {
   if (value === undefined || !/^\d+$/.test(value)) return null
@@ -103,6 +104,7 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
   const [aviso, setAviso] = useState<Aviso | null>(null)
   const [confirmar, setConfirmar] = useState<Confirmacion>(null)
   const [imprimirAbierto, setImprimirAbierto] = useState(false)
+  const [vistaPreviaAbierta, setVistaPreviaAbierta] = useState(false)
   // Controlled: an uncontrolled Menu whose target gets disabled mid-click stays "open" while
   // hidden, and the next click on Exportar PDF only closes it.
   const [exportarAbierto, setExportarAbierto] = useState(false)
@@ -148,6 +150,7 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
 
   const exportarComo = (modo: ModoExportacion) => {
     setExportarAbierto(false)
+    setVistaPreviaAbierta(false)
     iniciar(() => exportar.mutate({ liquidacionId: id, modo }))
   }
 
@@ -194,6 +197,9 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
               Reabrir
             </Button>
           )}
+          <Button variant="default" disabled={ocupado || sinRecibos} onClick={() => setVistaPreviaAbierta(true)}>
+            Vista previa
+          </Button>
           <Menu position="bottom-end" opened={exportarAbierto} onChange={setExportarAbierto}>
             <Menu.Target>
               <Button variant="default" loading={exportar.isPending} disabled={ocupado || sinRecibos}>
@@ -314,6 +320,13 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
         confirmar="Reabrir"
         onConfirm={() => iniciar(() => reabrir.mutate({ id }))}
         onClose={() => setConfirmar(null)}
+      />
+      <VistaPreviaModal
+        opened={vistaPreviaAbierta}
+        liquidacionId={id}
+        titulo={`Vista previa · Liquidación ${nombrePeriodo(liquidacion.periodo)}`}
+        onExportar={exportarComo}
+        onClose={() => setVistaPreviaAbierta(false)}
       />
       <ImprimirModal
         opened={imprimirAbierto}

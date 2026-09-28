@@ -13,7 +13,7 @@ import { paths } from '../../paths'
 import { conOverride, type OverrideKey } from './entradas'
 import { LineasAuto } from './LineasAuto'
 import { LineasManuales } from './LineasManuales'
-import { ReciboPreview } from './ReciboPreview'
+import { ReciboPreview } from '../../components/ReciboPreview'
 import { useAutosave, type EstadoGuardado } from './useAutosave'
 
 export interface ReciboEditorPageProps {

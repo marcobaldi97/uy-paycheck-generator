@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { paths } from '../../paths'
 import { renderWithProviders } from '../../test/render'
 import { LiquidacionDetallePage } from './index'
+import { recibosDePrueba } from '../../components/Recibo.fixture'
 import { detalle, err, installApi, ok, removeApi } from './testApi'
 
 function renderDetalle(path = paths.liquidacion(2)) {
@@ -243,6 +244,47 @@ describe('LiquidacionDetallePage', () => {
     await userEvent.click(await opcion('Un solo archivo'))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('La liquidación no tiene recibos')
+  })
+
+  it('previews every receipt before exporting from the preview', async () => {
+    const datosImpresion = vi.fn().mockResolvedValue(ok(recibosDePrueba(2)))
+    const exportar = vi.fn().mockResolvedValue(ok({ cancelado: false, archivos: ['C:\\Recibos\\Agosto.pdf'] }))
+    installApi({
+      liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) },
+      pdf: { datosImpresion, exportar },
+    })
+    renderDetalle()
+
+    await screen.findAllByTestId('recibo-fila')
+    await userEvent.click(boton('Vista previa'))
+
+    const dialogo = await screen.findByRole('dialog', { name: 'Vista previa · Liquidación Agosto 2024' })
+    expect(await within(dialogo).findByRole('region', { name: 'Recibo de TRABAJADOR 1' })).toBeInTheDocument()
+    expect(within(dialogo).getByRole('region', { name: 'Recibo de TRABAJADOR 2' })).toBeInTheDocument()
+    expect(datosImpresion).toHaveBeenCalledWith({ liquidacionId: 2, reciboId: null })
+    expect(exportar).not.toHaveBeenCalled()
+
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Exportar PDF' }))
+    await userEvent.click(await opcion('Un archivo por trabajador'))
+
+    expect(exportar).toHaveBeenCalledWith({ liquidacionId: 2, modo: 'por_trabajador' })
+    await sinDialogo()
+    expect(await screen.findByRole('status')).toHaveTextContent('PDF guardado')
+  })
+
+  it('shows an error in the preview when the receipts cannot be loaded', async () => {
+    const datosImpresion = vi.fn().mockResolvedValue(err('INTERNO', 'Falló la base de datos'))
+    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { datosImpresion } })
+    renderDetalle()
+
+    await screen.findAllByTestId('recibo-fila')
+    await userEvent.click(boton('Vista previa'))
+
+    const dialogo = await screen.findByRole('dialog')
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('Falló la base de datos')
+    expect(within(dialogo).getByRole('button', { name: 'Exportar PDF' })).toBeDisabled()
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cerrar' }))
+    await sinDialogo()
   })
 
   it('prints to the default printer, or through the system dialog', async () => {
