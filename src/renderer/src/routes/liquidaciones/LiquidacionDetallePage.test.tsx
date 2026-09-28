@@ -24,9 +24,7 @@ function deferred<T>() {
 
 const boton = (name: string) => screen.getByRole('button', { name })
 
-// `hidden: true`: without MantineProvider env="test", Popover's hideDetached can hide the
-// dropdown under jsdom's zero-size layout (intermittently), though it is open and clickable.
-const opcion = (name: string) => screen.findByRole('menuitem', { name, hidden: true })
+const opcion = (name: string) => screen.findByRole('menuitem', { name })
 
 /** Mantine keeps modals and menus mounted during their exit transition. */
 const sinDialogo = () => waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())

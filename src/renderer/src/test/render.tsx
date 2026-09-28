@@ -10,7 +10,7 @@ export function renderWithProviders(routes: RouteObject[], initialPath = '/') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const router = createMemoryRouter(routes, { initialEntries: [initialPath] })
   return render(
-    <MantineProvider>
+    <MantineProvider env="test">
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
       </QueryClientProvider>
