@@ -13,7 +13,7 @@ import { fuenteWindowApi, type FuenteImpresion } from './fuente'
 import classes from './PrintPage.module.css'
 
 export interface PrintPageProps {
-  /** Injected in tests; defaults to `window.api.pdf`. */
+  /** Injected in tests; defaults to `window.api.pdf` through the typed client. */
   fuente?: FuenteImpresion
 }
 
