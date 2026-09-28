@@ -16,7 +16,7 @@ Windows desktop app that generates monthly Uruguayan paychecks (liquidación tip
 
 Before any merge: `npm run typecheck`, `npm run lint`, `npm test` pass (and `npm run test:db` if you touched `src/main`).
 
-Use Node 24 LTS (`.nvmrc`). Tests that load `better-sqlite3` must live under `src/main` and run with `test:db`: the native module crashes under some system Node versions (23.3 segfaults) but always matches Electron's runtime.
+Use Node 24 LTS (`.nvmrc`). `.npmrc` sets `ignore-scripts=true`: every dependency ships prebuilt binaries, and npm 10 would otherwise try to compile better-sqlite3 with node-gyp. Electron downloads its binary on first run. Tests that load `better-sqlite3` must live under `src/main` and run with `test:db`: the native module crashes under some system Node versions (23.3 segfaults) but always matches Electron's runtime.
 
 ## Stack
 
