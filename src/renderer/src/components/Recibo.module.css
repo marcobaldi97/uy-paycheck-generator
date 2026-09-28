@@ -1,0 +1,192 @@
+/* Receipt template. Sizes are in mm so the sheet prints 1:1 on A4 (210 × 297 mm).
+   One sheet = original (top half) + copy (bottom half). */
+
+.hoja {
+  box-sizing: border-box;
+  width: 210mm;
+  height: 297mm;
+  overflow: hidden;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 8pt;
+  line-height: 1.25;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.hoja *,
+.hoja *::before,
+.hoja *::after {
+  box-sizing: border-box;
+}
+
+.copia {
+  display: flex;
+  flex-direction: column;
+  height: 148.5mm;
+  padding: 8mm 10mm 6mm;
+}
+
+.copia + .copia {
+  border-top: 0.3mm dashed #666;
+}
+
+/* ---------------------------------------------------------------- header */
+
+.encabezado {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  padding-bottom: 2mm;
+  border-bottom: 0.4mm solid #000;
+}
+
+.empresa {
+  flex: 1;
+}
+
+.empresaNombre {
+  font-size: 11pt;
+  font-weight: 700;
+  margin: 0 0 1mm;
+}
+
+.titulo {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tituloTexto {
+  font-size: 11pt;
+  font-weight: 700;
+  margin: 0;
+}
+
+.ejemplar {
+  display: inline-block;
+  margin: 1mm 0;
+  padding: 0.3mm 2mm;
+  border: 0.3mm solid #000;
+  font-weight: 700;
+  letter-spacing: 0.3mm;
+}
+
+.linea {
+  margin: 0;
+}
+
+.etiqueta {
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- worker */
+
+.trabajador {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6mm 4mm;
+  padding: 2mm 0;
+  border-bottom: 0.4mm solid #000;
+}
+
+.campo {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.campoAncho {
+  grid-column: span 2;
+}
+
+/* ---------------------------------------------------------------- lines */
+
+.cuerpo {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding-top: 2mm;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.tabla th {
+  padding: 0.8mm 1mm;
+  border-bottom: 0.3mm solid #000;
+  font-weight: 700;
+  text-align: left;
+}
+
+.tabla td {
+  padding: 0.6mm 1mm;
+}
+
+.tabla .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.colConcepto {
+  width: 40%;
+}
+
+.colCantidad {
+  width: 12%;
+}
+
+.colValor {
+  width: 16%;
+}
+
+.colImporte {
+  width: 16%;
+}
+
+.tabla tfoot td {
+  border-top: 0.3mm solid #000;
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- totals and signature */
+
+.pie {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 6mm;
+  padding-top: 2mm;
+  border-top: 0.4mm solid #000;
+}
+
+.imponibles {
+  flex: 1;
+}
+
+.liquido {
+  padding: 1.5mm 3mm;
+  border: 0.4mm solid #000;
+  font-size: 10pt;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.firma {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 6mm;
+  margin-top: 5mm;
+}
+
+.firmaLinea {
+  width: 65mm;
+  padding-top: 1mm;
+  border-top: 0.3mm solid #000;
+  text-align: center;
+}
