@@ -1,0 +1,6 @@
+export { calcularRecibo, DESCRIPCIONES_DEFAULT } from './calcular'
+export type { CalcularReciboInput, CalcularReciboResultado, CondicionesCalculo } from './calcular'
+export { fonasaBandaAlta, tasaFonasa } from './fonasa'
+export { calcularIrpf, irpfBruto, irpfDeducciones, rentaConIncremento, tasaDeduccion } from './irpf'
+export type { IrpfDetalle } from './irpf'
+export { calcularRedondeo, redondearAPesos } from './redondeo'
