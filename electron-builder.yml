@@ -1,0 +1,28 @@
+appId: uy.recibos.app
+productName: Recibos de sueldo
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**/*
+  - package.json
+# better-sqlite3 13 is N-API with bundled prebuilds; no rebuild against Electron is needed.
+npmRebuild: false
+asarUnpack:
+  - '**/node_modules/better-sqlite3/**'
+# Migrations are read at runtime from process.resourcesPath/drizzle.
+extraResources:
+  - from: drizzle
+    to: drizzle
+win:
+  target:
+    - target: portable
+      arch: [x64]
+    - target: nsis
+      arch: [x64]
+portable:
+  artifactName: ${productName}-${version}-portable.${ext}
+nsis:
+  artifactName: ${productName}-${version}-setup.${ext}
+  oneClick: false
+  allowToChangeInstallationDirectory: true
