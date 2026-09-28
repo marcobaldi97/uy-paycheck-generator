@@ -6,3 +6,25 @@ body {
 table {
   font-variant-numeric: tabular-nums;
 }
+
+@font-face {
+  font-family: 'Fraunces';
+  src: url('./assets/fonts/fraunces-latin-wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Instrument Sans';
+  src: url('./assets/fonts/instrument-sans-latin-wght.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+/* Table headers: quiet caption row on a slightly tinted ground. */
+.mantine-Table-th {
+  background: #fbfaf6;
+  color: #5f6b66;
+  font-size: 13px;
+  font-weight: 500;
+}

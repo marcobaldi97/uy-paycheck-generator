@@ -4,16 +4,18 @@
 import {
   Alert,
   Anchor,
+  Avatar,
   Badge,
   Button,
   Center,
   Group,
   Loader,
   Menu,
+  Paper,
+  SimpleGrid,
   Stack,
   Table,
   Text,
-  Title,
 } from '@mantine/core'
 import { formatMoney } from '@shared/money'
 import type { LiquidacionDetalle, ModoExportacion, ResultadoExportacion } from '@shared/types'
@@ -28,7 +30,9 @@ import {
   useReabrirLiquidacion,
   useRecalcularLiquidacion,
 } from '../../api/hooks'
+import { PageHeader } from '../../components/PageHeader'
 import { formatFecha } from '../../components/Recibo'
+import { StatCard } from '../../components/StatCard'
 import { paths } from '../../paths'
 import { ConfirmarModal } from './ConfirmarModal'
 import { EstadoBadge } from './EstadoBadge'
@@ -64,7 +68,7 @@ export function LiquidacionDetallePage() {
 
   return (
     <Stack>
-      <Anchor component={Link} to={paths.liquidaciones()} size="sm">
+      <Anchor component={Link} to={paths.liquidaciones()} size="sm" c="dimmed" underline="hover">
         ← Liquidaciones
       </Anchor>
       {contenido}
@@ -113,11 +117,18 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
   const fallo = (error: ApiRequestError) => {
     setAviso({ color: 'red', texto: errorMessage(error) })
     // Someone else (another window, a stale screen) changed the estado: show the real one.
-    if ((['LIQUIDACION_EMITIDA', 'CONFLICTO', 'NO_ENCONTRADO'] as const).some((c) => isApiErrorCode(error, c))) refrescar()
+    if ((['LIQUIDACION_EMITIDA', 'CONFLICTO', 'NO_ENCONTRADO'] as const).some((c) => isApiErrorCode(error, c)))
+      refrescar()
   }
 
-  const recalcular = useRecalcularLiquidacion({ onSuccess: () => ok('Liquidación recalculada.'), onError: fallo })
-  const emitir = useEmitirLiquidacion({ onSuccess: () => ok('Liquidación emitida.'), onError: fallo })
+  const recalcular = useRecalcularLiquidacion({
+    onSuccess: () => ok('Liquidación recalculada.'),
+    onError: fallo,
+  })
+  const emitir = useEmitirLiquidacion({
+    onSuccess: () => ok('Liquidación emitida.'),
+    onError: fallo,
+  })
   const reabrir = useReabrirLiquidacion({
     onSuccess: () => ok('Liquidación reabierta. Volvió a borrador.'),
     onError: fallo,
@@ -156,74 +167,69 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
 
   return (
     <Stack>
-      <Group justify="space-between" align="flex-start">
-        <Stack gap={4}>
-          <Group gap="sm">
-            <Title order={2}>Liquidación {nombrePeriodo(liquidacion.periodo)}</Title>
-            <EstadoBadge estado={liquidacion.estado} />
-          </Group>
-          <Text size="sm" c="dimmed">
-            Fecha de cargo {formatFecha(liquidacion.fechaCargo)} · Fecha de pago {formatFecha(liquidacion.fechaPago)}
-          </Text>
-        </Stack>
-
-        <Group gap="xs">
-          {borrador && (
-            <Button
-              variant="default"
-              loading={recalcular.isPending}
-              disabled={ocupado}
-              onClick={() => iniciar(() => recalcular.mutate({ id }))}
-            >
-              Recalcular
-            </Button>
-          )}
-          {borrador ? (
-            <Button
-              color="green"
-              loading={emitir.isPending}
-              disabled={ocupado || sinRecibos}
-              onClick={() => setConfirmar('emitir')}
-            >
-              Emitir
-            </Button>
-          ) : (
-            <Button
-              variant="default"
-              loading={reabrir.isPending}
-              disabled={ocupado}
-              onClick={() => setConfirmar('reabrir')}
-            >
-              Reabrir
-            </Button>
-          )}
-          <Button variant="default" disabled={ocupado || sinRecibos} onClick={() => setVistaPreviaAbierta(true)}>
-            Vista previa
-          </Button>
-          <Menu position="bottom-end" opened={exportarAbierto} onChange={setExportarAbierto}>
-            <Menu.Target>
-              <Button variant="default" loading={exportar.isPending} disabled={ocupado || sinRecibos}>
-                Exportar PDF
+      <PageHeader
+        title={`Liquidación ${nombrePeriodo(liquidacion.periodo)}`}
+        badge={<EstadoBadge estado={liquidacion.estado} />}
+        subtitle={`Fecha de cargo ${formatFecha(liquidacion.fechaCargo)} · Fecha de pago ${formatFecha(liquidacion.fechaPago)}`}
+        actions={
+          <>
+            {borrador && (
+              <Button
+                variant="default"
+                loading={recalcular.isPending}
+                disabled={ocupado}
+                onClick={() => iniciar(() => recalcular.mutate({ id }))}
+              >
+                Recalcular
               </Button>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item onClick={() => exportarComo('unico')}>Un solo archivo</Menu.Item>
-              <Menu.Item onClick={() => exportarComo('por_trabajador')}>Un archivo por trabajador</Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-          <Button
-            variant="default"
-            loading={imprimir.isPending}
-            disabled={ocupado || sinRecibos}
-            onClick={() => {
-              setAviso(null)
-              setImprimirAbierto(true)
-            }}
-          >
-            Imprimir
-          </Button>
-        </Group>
-      </Group>
+            )}
+            {borrador ? (
+              <Button
+                size="md"
+                loading={emitir.isPending}
+                disabled={ocupado || sinRecibos}
+                onClick={() => setConfirmar('emitir')}
+              >
+                Emitir
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                loading={reabrir.isPending}
+                disabled={ocupado}
+                onClick={() => setConfirmar('reabrir')}
+              >
+                Reabrir
+              </Button>
+            )}
+            <Button variant="default" disabled={ocupado || sinRecibos} onClick={() => setVistaPreviaAbierta(true)}>
+              Vista previa
+            </Button>
+            <Menu position="bottom-end" opened={exportarAbierto} onChange={setExportarAbierto}>
+              <Menu.Target>
+                <Button variant="default" loading={exportar.isPending} disabled={ocupado || sinRecibos}>
+                  Exportar PDF
+                </Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item onClick={() => exportarComo('unico')}>Un solo archivo</Menu.Item>
+                <Menu.Item onClick={() => exportarComo('por_trabajador')}>Un archivo por trabajador</Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+            <Button
+              variant="default"
+              loading={imprimir.isPending}
+              disabled={ocupado || sinRecibos}
+              onClick={() => {
+                setAviso(null)
+                setImprimirAbierto(true)
+              }}
+            >
+              Imprimir
+            </Button>
+          </>
+        }
+      />
 
       {exportar.isPending && (
         <Text size="sm" c="dimmed">
@@ -251,57 +257,61 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
       {sinRecibos ? (
         <Text c="dimmed">Esta liquidación no tiene recibos.</Text>
       ) : (
-        <Table highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Trabajador</Table.Th>
-              <Table.Th ta="right">Haberes</Table.Th>
-              <Table.Th ta="right">Descuentos</Table.Th>
-              <Table.Th ta="right">Líquido</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {recibos.map((recibo) => (
-              <Table.Tr key={recibo.id} data-testid="recibo-fila">
-                <Table.Td>
-                  <Group gap="xs">
-                    <Anchor component={Link} to={paths.recibo(id, recibo.id)}>
-                      {recibo.trabajadorNombre}
-                    </Anchor>
-                    {recibo.tieneOverrides && (
-                      <Badge size="xs" variant="outline" color="orange">
-                        Ajustes manuales
-                      </Badge>
-                    )}
-                  </Group>
-                </Table.Td>
-                <Table.Td ta="right" ff="monospace">
-                  {formatMoney(recibo.totalHaberes)}
-                </Table.Td>
-                <Table.Td ta="right" ff="monospace">
-                  {formatMoney(recibo.totalDescuentos)}
-                </Table.Td>
-                <Table.Td ta="right" ff="monospace">
-                  {formatMoney(recibo.liquido)}
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-          <Table.Tfoot>
-            <Table.Tr data-testid="totales-fila" fw={700}>
-              <Table.Td>Totales</Table.Td>
-              <Table.Td ta="right" ff="monospace">
-                {formatMoney(totales.totalHaberes)}
-              </Table.Td>
-              <Table.Td ta="right" ff="monospace">
-                {formatMoney(totales.totalDescuentos)}
-              </Table.Td>
-              <Table.Td ta="right" ff="monospace">
-                {formatMoney(totales.liquido)}
-              </Table.Td>
-            </Table.Tr>
-          </Table.Tfoot>
-        </Table>
+        <>
+          <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
+            <StatCard label="Total haberes" value={formatMoney(totales.totalHaberes)} />
+            <StatCard label="Total descuentos" value={formatMoney(totales.totalDescuentos)} />
+            <StatCard label="Total líquido" value={formatMoney(totales.liquido)} destacada />
+          </SimpleGrid>
+          <Paper withBorder radius="lg" style={{ overflow: 'hidden' }}>
+            <Table highlightOnHover verticalSpacing="md" horizontalSpacing="lg">
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Trabajador</Table.Th>
+                  <Table.Th ta="right">Haberes</Table.Th>
+                  <Table.Th ta="right">Descuentos</Table.Th>
+                  <Table.Th ta="right">Líquido</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {recibos.map((recibo) => (
+                  <Table.Tr key={recibo.id} data-testid="recibo-fila">
+                    <Table.Td>
+                      <Group gap="sm">
+                        <Avatar color="forest" radius="xl" size={32} name={recibo.trabajadorNombre} />
+                        <Anchor
+                          component={Link}
+                          to={paths.recibo(id, recibo.id)}
+                          fw={600}
+                          c="inherit"
+                          underline="hover"
+                        >
+                          {recibo.trabajadorNombre}
+                        </Anchor>
+                        {recibo.tieneOverrides && (
+                          <Badge size="sm" variant="light" color="amber">
+                            Ajustes manuales
+                          </Badge>
+                        )}
+                      </Group>
+                    </Table.Td>
+                    <Table.Td ta="right">{formatMoney(recibo.totalHaberes)}</Table.Td>
+                    <Table.Td ta="right">{formatMoney(recibo.totalDescuentos)}</Table.Td>
+                    <Table.Td ta="right">{formatMoney(recibo.liquido)}</Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+              <Table.Tfoot>
+                <Table.Tr data-testid="totales-fila" fw={600} bg="#FBFAF6" style={{ borderTop: '2px solid #1B2421' }}>
+                  <Table.Td>Totales</Table.Td>
+                  <Table.Td ta="right">{formatMoney(totales.totalHaberes)}</Table.Td>
+                  <Table.Td ta="right">{formatMoney(totales.totalDescuentos)}</Table.Td>
+                  <Table.Td ta="right">{formatMoney(totales.liquido)}</Table.Td>
+                </Table.Tr>
+              </Table.Tfoot>
+            </Table>
+          </Paper>
+        </>
       )}
 
       <ConfirmarModal
