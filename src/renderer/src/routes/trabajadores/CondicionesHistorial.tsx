@@ -26,7 +26,7 @@ export function CondicionesHistorial({ condiciones, hoy }: CondicionesHistorialP
 
   return (
     <Table.ScrollContainer minWidth={800}>
-      <Table striped>
+      <Table verticalSpacing="sm">
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Vigente desde</Table.Th>
@@ -46,12 +46,12 @@ export function CondicionesHistorial({ condiciones, hoy }: CondicionesHistorialP
               <Table.Td>
                 {formatFecha(c.vigenteDesde)}{' '}
                 {c === vigente && (
-                  <Badge color="green" variant="light" size="sm">
+                  <Badge color="forest" variant="light" size="sm">
                     Vigente
                   </Badge>
                 )}
                 {c.vigenteDesde > hoy && (
-                  <Badge color="blue" variant="light" size="sm">
+                  <Badge color="amber" variant="light" size="sm">
                     Futura
                   </Badge>
                 )}

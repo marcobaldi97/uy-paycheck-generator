@@ -1,9 +1,10 @@
 // Respaldo: copies the database file to a folder the user picks (main opens the dialog).
 
-import { Alert, Button, Code, Group, Loader, Paper, Stack, Text, Title } from '@mantine/core'
+import { Alert, Button, Code, Group, Loader, Paper, Stack, Text } from '@mantine/core'
 import type { IsoDateTime } from '@shared/types'
 import dayjs from 'dayjs'
 import { errorMessage } from '../../api/client'
+import { PageHeader } from '../../components/PageHeader'
 import { useCrearRespaldo, useRespaldoInfo } from '../../api/hooks'
 
 /** ISO UTC → local "DD/MM/YYYY HH:mm". */
@@ -15,8 +16,8 @@ export function RespaldoPage() {
 
   return (
     <Stack maw={720}>
-      <Title order={2}>Respaldo</Title>
-      <Paper withBorder p="lg">
+      <PageHeader title="Respaldo" eyebrow="Una copia completa de tus datos" />
+      <Paper withBorder radius="xl" p="xl">
         <Stack>
           {info.isPending ? (
             <Loader aria-label="Cargando" />
@@ -54,13 +55,13 @@ export function RespaldoPage() {
             </Alert>
           )}
           {crear.isSuccess && !crear.data.cancelado && (
-            <Alert color="green" title="Respaldo creado">
+            <Alert color="forest" title="Respaldo creado">
               <Code>{crear.data.archivo}</Code>
             </Alert>
           )}
 
           <Group>
-            <Button onClick={() => crear.mutate()} loading={crear.isPending}>
+            <Button size="lg" onClick={() => crear.mutate()} loading={crear.isPending}>
               Crear respaldo
             </Button>
           </Group>

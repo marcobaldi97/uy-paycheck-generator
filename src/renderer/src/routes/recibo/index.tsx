@@ -2,13 +2,14 @@
 // Right: live preview. Edits autosave; main recomputes and returns the recibo, which feeds the
 // computed lines and the preview. Read-only while the liquidación is emitida.
 
-import { Alert, Anchor, Avatar, Badge, Grid, Group, Loader, NumberInput, Paper, Stack, Text, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Grid, Group, Loader, NumberInput, Paper, Stack, Text, Title } from '@mantine/core'
 import type { Overrides, ReciboDetalle, ReciboEntradas } from '@shared/types'
 import { formatMoney } from '@shared/money'
 import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { errorMessage } from '../../api/client'
 import { useRecibo } from '../../api/hooks'
+import { PersonAvatar } from '../../components/PersonAvatar'
 import { PageHeader } from '../../components/PageHeader'
 import { paths } from '../../paths'
 import { conOverride, type OverrideKey } from './entradas'
@@ -122,7 +123,7 @@ function ReciboEditor({ detalle, volver, autosaveMs, onEmitida }: ReciboEditorPr
     <Stack gap="md">
       {volver}
       <Group gap="md" wrap="nowrap" align="center">
-        <Avatar color="forest" radius="xl" size={56} name={trabajador.nombre} />
+        <PersonAvatar nombre={trabajador.nombre} size={56} />
         <div style={{ flex: 1 }}>
           <PageHeader
             title={trabajador.nombre}

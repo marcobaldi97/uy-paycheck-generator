@@ -1,11 +1,12 @@
 // Empresa: the single company record printed on every receipt.
 
-import { Alert, Button, Group, Loader, Paper, SimpleGrid, Stack, Text, TextInput, Title } from '@mantine/core'
+import { Alert, Button, Group, Loader, Paper, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
 import { schemaResolver, useForm } from '@mantine/form'
 import { notifications } from '@mantine/notifications'
 import { empresaSchema } from '@shared/schemas'
 import type { Empresa } from '@shared/types'
 import { errorMessage } from '../../api/client'
+import { PageHeader } from '../../components/PageHeader'
 import { useEmpresa, useGuardarEmpresa } from '../../api/hooks'
 
 const EMPTY: Empresa = { nombre: '', direccion: '', rut: '', nroMtss: '', grupo: '', subgrupo: '' }
@@ -15,7 +16,7 @@ export function EmpresaPage() {
 
   return (
     <Stack maw={720}>
-      <Title order={2}>Empresa</Title>
+      <PageHeader title="Empresa" eyebrow="Aparece en el encabezado de cada recibo" />
       {empresa.isPending ? (
         <Loader aria-label="Cargando" />
       ) : empresa.isError ? (

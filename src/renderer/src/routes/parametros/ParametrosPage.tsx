@@ -1,13 +1,14 @@
 // Parámetros: versions by vigenteDesde (newest first), an editor for the selected one and
 // "Nueva versión", which duplicates the latest version under a new date.
 
-import { Alert, Badge, Button, Grid, Group, Loader, NavLink, Paper, Stack, Text, Title } from '@mantine/core'
+import { Alert, Badge, Button, Grid, Loader, NavLink, Paper, Stack, Text } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import type { IsoDate } from '@shared/types'
 import dayjs from 'dayjs'
 import { useState } from 'react'
 import { errorMessage } from '../../api/client'
 import { useParametros } from '../../api/hooks'
+import { PageHeader } from '../../components/PageHeader'
 import { formatFecha } from './form'
 import { NuevaVersionModal } from './NuevaVersionModal'
 import { ParametrosEditor } from './ParametrosEditor'
@@ -24,12 +25,15 @@ export function ParametrosPage() {
 
   return (
     <Stack>
-      <Group justify="space-between">
-        <Title order={2}>Parámetros</Title>
-        <Button onClick={() => setCreating(true)} disabled={versions.length === 0}>
-          Nueva versión
-        </Button>
-      </Group>
+      <PageHeader
+        title="Parámetros"
+        eyebrow="Tasas y topes que usa el cálculo de cada recibo"
+        actions={
+          <Button size="lg" onClick={() => setCreating(true)} disabled={versions.length === 0}>
+            Nueva versión
+          </Button>
+        }
+      />
 
       {parametros.isPending ? (
         <Loader aria-label="Cargando" />
@@ -42,7 +46,7 @@ export function ParametrosPage() {
       ) : (
         <Grid>
           <Grid.Col span={{ base: 12, md: 3 }}>
-            <Paper withBorder p="xs">
+            <Paper withBorder radius="lg" p="xs">
               <Text size="sm" fw={600} px="sm" pb="xs">
                 Vigente desde
               </Text>

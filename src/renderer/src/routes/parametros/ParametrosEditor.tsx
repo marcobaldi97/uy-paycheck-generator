@@ -75,7 +75,9 @@ export function ParametrosEditor({ version }: { version: ParametrosVersion }) {
       onSubmit={form.onSubmit((values) => actualizar.mutate(toVersion(version.vigenteDesde, values)))}
     >
       <Stack>
-        <Title order={3}>Vigente desde {formatFecha(version.vigenteDesde)}</Title>
+        <Title order={2} fz={26}>
+          Vigente desde {formatFecha(version.vigenteDesde)}
+        </Title>
 
         <Section title="General">
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
@@ -219,9 +221,11 @@ export function ParametrosEditor({ version }: { version: ParametrosVersion }) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Paper withBorder p="md">
+    <Paper withBorder radius="lg" p="lg">
       <Stack gap="sm">
-        <Title order={4}>{title}</Title>
+        <Title order={3} fz={18} ff="var(--mantine-font-family)" fw={600}>
+          {title}
+        </Title>
         {children}
       </Stack>
     </Paper>

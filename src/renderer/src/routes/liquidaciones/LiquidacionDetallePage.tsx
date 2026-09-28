@@ -4,7 +4,7 @@
 import {
   Alert,
   Anchor,
-  Avatar,
+ 
   Badge,
   Button,
   Center,
@@ -30,6 +30,7 @@ import {
   useReabrirLiquidacion,
   useRecalcularLiquidacion,
 } from '../../api/hooks'
+import { PersonAvatar } from '../../components/PersonAvatar'
 import { PageHeader } from '../../components/PageHeader'
 import { formatFecha } from '../../components/Recibo'
 import { StatCard } from '../../components/StatCard'
@@ -278,7 +279,7 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
                   <Table.Tr key={recibo.id} data-testid="recibo-fila">
                     <Table.Td>
                       <Group gap="sm">
-                        <Avatar color="forest" radius="xl" size={32} name={recibo.trabajadorNombre} />
+                        <PersonAvatar nombre={recibo.trabajadorNombre} size={32} />
                         <Anchor
                           component={Link}
                           to={paths.recibo(id, recibo.id)}

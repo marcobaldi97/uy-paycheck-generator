@@ -2,13 +2,15 @@
 // `/trabajadores/nuevo` shows the create form; after creating, it moves to the new
 // worker's detail so the first condition can be added.
 
-import { Alert, Anchor, Button, Card, Group, Loader, Modal, Stack, Title } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Card, Group, Loader, Modal, Stack, Title } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import dayjs from 'dayjs'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { errorMessage, isApiErrorCode } from '../../api/client'
 import { useActualizarTrabajador, useCrearTrabajador, useNuevaCondicion, useTrabajador, useTrabajadores } from '../../api/hooks'
+import { PersonAvatar } from '../../components/PersonAvatar'
+import { PageHeader } from '../../components/PageHeader'
 import { paths } from '../../paths'
 import { CondicionesHistorial } from './CondicionesHistorial'
 import { CondicionForm } from './CondicionForm'
@@ -26,7 +28,7 @@ export function TrabajadorDetallePage() {
 
 function Volver() {
   return (
-    <Anchor component={Link} to={paths.trabajadores()} size="sm">
+    <Anchor component={Link} to={paths.trabajadores()} size="sm" c="dimmed" underline="hover">
       ← Trabajadores
     </Anchor>
   )
@@ -51,11 +53,11 @@ function NuevoTrabajador() {
   return (
     <Stack>
       <Volver />
-      <Title order={2}>Nuevo trabajador</Title>
+      <PageHeader title="Nuevo trabajador" />
       {todos.isPending ? (
         <Loader aria-label="Cargando" />
       ) : (
-        <Card withBorder>
+        <Card withBorder radius="lg" p="lg">
           <TrabajadorForm
             // Suggest the next number once the list is known; empty if it failed to load.
             initialValues={trabajadorVacio(todos.data ? siguienteNumero(todos.data) : '')}
@@ -97,13 +99,26 @@ function TrabajadorExistente({ id }: { id: number }) {
   return (
     <Stack>
       <Volver />
-      <Title order={2}>
-        {trabajador.numero} · {trabajador.nombre}
-      </Title>
+      <Group gap="md" wrap="nowrap">
+        <PersonAvatar nombre={trabajador.nombre} size={64} />
+        <div style={{ flex: 1 }}>
+          <PageHeader
+            title={`${trabajador.numero} · ${trabajador.nombre}`}
+            badge={
+              <Badge color={trabajador.activo ? 'forest' : 'gray'} variant="light" size="lg">
+                {trabajador.activo ? 'Activo' : 'Inactivo'}
+              </Badge>
+            }
+            subtitle={trabajador.cargo || undefined}
+          />
+        </div>
+      </Group>
 
-      <Card withBorder>
+      <Card withBorder radius="lg" p="lg">
         <Stack>
-          <Title order={4}>Datos</Title>
+          <Title order={3} fz={18} ff="var(--mantine-font-family)" fw={600}>
+            Datos
+          </Title>
           <TrabajadorForm
             initialValues={trabajadorAForm(trabajador)}
             submitLabel="Guardar"
@@ -116,11 +131,15 @@ function TrabajadorExistente({ id }: { id: number }) {
         </Stack>
       </Card>
 
-      <Card withBorder>
+      <Card withBorder radius="lg" p="lg">
         <Stack>
           <Group justify="space-between">
-            <Title order={4}>Condiciones</Title>
-            <Button onClick={() => setCondicionAbierta(true)}>Nueva condición</Button>
+            <Title order={3} fz={18} ff="var(--mantine-font-family)" fw={600}>
+              Condiciones
+            </Title>
+            <Button variant="outline" onClick={() => setCondicionAbierta(true)}>
+              Nueva condición
+            </Button>
           </Group>
           <CondicionesHistorial condiciones={condiciones} hoy={hoy} />
         </Stack>
