@@ -1,11 +1,4 @@
-// Placeholder from T0. T11 replaces this folder; keep these export names (router.tsx imports them).
+// Export names used by router.tsx.
 
-import { Placeholder } from '../../components/Placeholder'
-
-export function LiquidacionesPage() {
-  return <Placeholder title="Liquidaciones" task="T11" />
-}
-
-export function LiquidacionDetallePage() {
-  return <Placeholder title="Liquidación" task="T11" />
-}
+export { LiquidacionesPage } from './LiquidacionesPage'
+export { LiquidacionDetallePage } from './LiquidacionDetallePage'
