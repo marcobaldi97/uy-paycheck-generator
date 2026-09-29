@@ -1,5 +1,5 @@
 // One liquidación: a row per worker with haberes, descuentos and líquido, a totals footer,
-// and the actions Recalcular, Emitir, Reabrir, Vista previa, Exportar PDF and Imprimir.
+// and the actions Recalcular, Emitir, Reabrir, Vista previa and one Exportar o imprimir menu.
 
 import {
   Alert,
@@ -208,26 +208,31 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
             </Button>
             <Menu position="bottom-end" opened={exportarAbierto} onChange={setExportarAbierto}>
               <Menu.Target>
-                <Button variant="default" loading={exportar.isPending} disabled={ocupado || sinRecibos}>
-                  Exportar PDF
+                <Button
+                  variant="default"
+                  loading={exportar.isPending || imprimir.isPending}
+                  disabled={ocupado || sinRecibos}
+                  rightSection={<span aria-hidden="true">▾</span>}
+                >
+                  Exportar o imprimir
                 </Button>
               </Menu.Target>
               <Menu.Dropdown>
+                <Menu.Label>Exportar PDF</Menu.Label>
                 <Menu.Item onClick={() => exportarComo('unico')}>Un solo archivo</Menu.Item>
                 <Menu.Item onClick={() => exportarComo('por_trabajador')}>Un archivo por trabajador</Menu.Item>
+                <Menu.Divider />
+                <Menu.Item
+                  onClick={() => {
+                    setExportarAbierto(false)
+                    setAviso(null)
+                    setImprimirAbierto(true)
+                  }}
+                >
+                  Imprimir…
+                </Menu.Item>
               </Menu.Dropdown>
             </Menu>
-            <Button
-              variant="default"
-              loading={imprimir.isPending}
-              disabled={ocupado || sinRecibos}
-              onClick={() => {
-                setAviso(null)
-                setImprimirAbierto(true)
-              }}
-            >
-              Imprimir
-            </Button>
           </>
         }
       />

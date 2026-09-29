@@ -26,6 +26,10 @@ function deferred<T>() {
 const boton = (name: string) => screen.getByRole('button', { name })
 
 const opcion = (name: string) => screen.findByRole('menuitem', { name })
+const abrirImprimir = async () => {
+  await userEvent.click(boton('Exportar o imprimir'))
+  await userEvent.click(await opcion('Imprimir…'))
+}
 
 /** Mantine keeps modals and menus mounted during their exit transition. */
 const sinDialogo = () => waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
@@ -169,13 +173,12 @@ describe('LiquidacionDetallePage', () => {
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
-    await userEvent.click(boton('Exportar PDF'))
+    await userEvent.click(boton('Exportar o imprimir'))
     await userEvent.click(await opcion('Un solo archivo'))
 
     expect(exportar).toHaveBeenCalledWith({ liquidacionId: 2, modo: 'unico' })
     await waitFor(() => expect(boton('Recalcular')).toBeDisabled())
     expect(boton('Emitir')).toBeDisabled()
-    expect(boton('Imprimir')).toBeDisabled()
     expect(screen.getByText(/Generando PDF/)).toBeInTheDocument()
 
     pendiente.resolve(ok({ cancelado: false, archivos: ['C:\\Recibos\\Agosto.pdf'] }))
@@ -194,7 +197,7 @@ describe('LiquidacionDetallePage', () => {
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
-    await userEvent.click(boton('Exportar PDF'))
+    await userEvent.click(boton('Exportar o imprimir'))
     await userEvent.click(await opcion('Un archivo por trabajador'))
 
     expect(exportar).toHaveBeenCalledWith({ liquidacionId: 2, modo: 'por_trabajador' })
@@ -207,14 +210,14 @@ describe('LiquidacionDetallePage', () => {
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
-    await userEvent.click(boton('Exportar PDF'))
+    await userEvent.click(boton('Exportar o imprimir'))
     await userEvent.click(await opcion('Un solo archivo'))
     expect(await screen.findByRole('status')).toHaveTextContent('PDF guardado')
-    expect(boton('Exportar PDF')).toHaveAttribute('aria-expanded', 'false')
+    expect(boton('Exportar o imprimir')).toHaveAttribute('aria-expanded', 'false')
 
     // One click opens it again.
-    await userEvent.click(boton('Exportar PDF'))
-    expect(boton('Exportar PDF')).toHaveAttribute('aria-expanded', 'true')
+    await userEvent.click(boton('Exportar o imprimir'))
+    expect(boton('Exportar o imprimir')).toHaveAttribute('aria-expanded', 'true')
     await userEvent.click(await opcion('Un archivo por trabajador'))
     await waitFor(() => expect(exportar).toHaveBeenLastCalledWith({ liquidacionId: 2, modo: 'por_trabajador' }))
   })
@@ -225,11 +228,11 @@ describe('LiquidacionDetallePage', () => {
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
-    await userEvent.click(boton('Exportar PDF'))
+    await userEvent.click(boton('Exportar o imprimir'))
     await userEvent.click(await opcion('Un solo archivo'))
 
     await waitFor(() => expect(exportar).toHaveBeenCalledTimes(1))
-    await waitFor(() => expect(boton('Exportar PDF')).toBeEnabled())
+    await waitFor(() => expect(boton('Exportar o imprimir')).toBeEnabled())
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
@@ -240,7 +243,7 @@ describe('LiquidacionDetallePage', () => {
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
-    await userEvent.click(boton('Exportar PDF'))
+    await userEvent.click(boton('Exportar o imprimir'))
     await userEvent.click(await opcion('Un solo archivo'))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('La liquidación no tiene recibos')
@@ -299,7 +302,7 @@ describe('LiquidacionDetallePage', () => {
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
-    await userEvent.click(boton('Imprimir'))
+    await abrirImprimir()
     let dialog = await screen.findByRole('dialog', { name: 'Imprimir recibos' })
     const select = await within(dialog).findByRole('combobox', { name: 'Impresora' })
     expect(select).toHaveValue('HP LaserJet')
@@ -309,7 +312,7 @@ describe('LiquidacionDetallePage', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Recibos enviados a HP LaserJet.')
     await sinDialogo()
 
-    await userEvent.click(boton('Imprimir'))
+    await abrirImprimir()
     dialog = await screen.findByRole('dialog', { name: 'Imprimir recibos' })
     await userEvent.selectOptions(
       await within(dialog).findByRole('combobox', { name: 'Impresora' }),
@@ -328,7 +331,7 @@ describe('LiquidacionDetallePage', () => {
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
-    await userEvent.click(boton('Imprimir'))
+    await abrirImprimir()
     const dialog = await screen.findByRole('dialog', { name: 'Imprimir recibos' })
     await within(dialog).findByRole('combobox', { name: 'Impresora' })
     await userEvent.click(within(dialog).getByRole('button', { name: 'Imprimir' }))
@@ -336,14 +339,13 @@ describe('LiquidacionDetallePage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Impresora no encontrada: PDF')
   })
 
-  it('disables Emitir, Exportar and Imprimir when there are no receipts', async () => {
+  it('disables Emitir and the export/print menu when there are no receipts', async () => {
     installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle('borrador', false))) } })
     renderDetalle()
 
     expect(await screen.findByText('Esta liquidación no tiene recibos.')).toBeInTheDocument()
     expect(boton('Recalcular')).toBeEnabled()
     expect(boton('Emitir')).toBeDisabled()
-    expect(boton('Exportar PDF')).toBeDisabled()
-    expect(boton('Imprimir')).toBeDisabled()
+    expect(boton('Exportar o imprimir')).toBeDisabled()
   })
 })
