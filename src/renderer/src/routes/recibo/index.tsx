@@ -15,6 +15,7 @@ import { paths } from '../../paths'
 import { conOverride, type OverrideKey } from './entradas'
 import { LineasAuto } from './LineasAuto'
 import { LineasManuales } from './LineasManuales'
+import { NavegacionRecibos } from './NavegacionRecibos'
 import { ReciboPreview } from '../../components/ReciboPreview'
 import { useAutosave, type EstadoGuardado } from './useAutosave'
 
@@ -80,6 +81,7 @@ function ReciboEditorCarga({
     <ReciboEditor
       detalle={recibo.data}
       volver={volver}
+      liquidacionId={liquidacionId}
       autosaveMs={autosaveMs}
       onEmitida={() => void recibo.refetch()}
     />
@@ -89,11 +91,12 @@ function ReciboEditorCarga({
 interface ReciboEditorProps {
   detalle: ReciboDetalle
   volver: ReactNode
+  liquidacionId: number
   autosaveMs: number
   onEmitida: () => void
 }
 
-function ReciboEditor({ detalle, volver, autosaveMs, onEmitida }: ReciboEditorProps) {
+function ReciboEditor({ detalle, volver, liquidacionId, autosaveMs, onEmitida }: ReciboEditorProps) {
   const soloLectura = detalle.estado === 'emitida'
   const { estado, programar } = useAutosave(detalle.id, { delay: autosaveMs, onEmitida })
 
@@ -121,7 +124,10 @@ function ReciboEditor({ detalle, volver, autosaveMs, onEmitida }: ReciboEditorPr
 
   return (
     <Stack gap="md">
-      {volver}
+      <Group justify="space-between">
+        {volver}
+        <NavegacionRecibos liquidacionId={liquidacionId} reciboId={detalle.id} />
+      </Group>
       <Group gap="md" wrap="nowrap" align="center">
         <PersonAvatar nombre={trabajador.nombre} size={56} />
         <div style={{ flex: 1 }}>
