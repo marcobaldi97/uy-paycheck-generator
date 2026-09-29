@@ -50,6 +50,20 @@ describe('ParametrosPage', () => {
     expect(screen.getByLabelText('Tasa franja 8')).toHaveValue('36')
   })
 
+  it('explains each parameter in a tooltip and exposes the same text to screen readers', async () => {
+    const user = userEvent.setup()
+    mockApi()
+    renderUi(<ParametrosPage />)
+
+    const montepio = await screen.findByLabelText('Montepío')
+    expect(montepio).toHaveAccessibleDescription(/Aporte jubilatorio del trabajador/)
+    expect(screen.getByLabelText('Umbral de franja')).toHaveAccessibleDescription(/separa las dos bandas de FONASA/)
+
+    const icono = montepio.closest('.mantine-InputWrapper-root')!.querySelector('[data-ayuda]')!
+    await user.hover(icono)
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(/Aporte jubilatorio del trabajador/)
+  })
+
   it('edits scalars and brackets and saves the version through actualizar', async () => {
     const user = userEvent.setup()
     const { actualizar } = mockApi()

@@ -22,6 +22,8 @@ import type { ReactNode } from 'react'
 import { errorMessage, isApiErrorCode } from '../../api/client'
 import { useActualizarParametros } from '../../api/hooks'
 import { MoneyInput } from '../../components/MoneyInput'
+import { AYUDA, AYUDA_FRANJA } from './ayuda'
+import { Etiqueta } from './Etiqueta'
 import {
   formatFecha,
   parametrosFormSchema,
@@ -81,29 +83,40 @@ export function ParametrosEditor({ version }: { version: ParametrosVersion }) {
 
         <Section title="General">
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <MoneyInput label="Valor BPC" withAsterisk rightSection="$" {...form.getInputProps('bpc')} />
+            <MoneyInput label={<Etiqueta texto="Valor BPC" ayuda={AYUDA.bpc} />}
+ aria-description={AYUDA.bpc} withAsterisk rightSection="$" {...form.getInputProps('bpc')} />
             <MoneyInput
-              label="Tope montepío"
+              label={<Etiqueta texto="Tope montepío" ayuda={AYUDA.topeMontepio} />}
+ aria-description={AYUDA.topeMontepio}
               description="Vacío = sin tope"
               rightSection="$"
               {...form.getInputProps('topeMontepio')}
             />
-            <TextInput label="Montepío" {...percent} {...form.getInputProps('montepio')} />
-            <TextInput label="FRL" {...percent} {...form.getInputProps('frl')} />
+            <TextInput label={<Etiqueta texto="Montepío" ayuda={AYUDA.montepio} />}
+ aria-description={AYUDA.montepio} {...percent} {...form.getInputProps('montepio')} />
+            <TextInput label={<Etiqueta texto="FRL" ayuda={AYUDA.frl} />}
+ aria-description={AYUDA.frl} {...percent} {...form.getInputProps('frl')} />
           </SimpleGrid>
         </Section>
 
         <Section title="FONASA">
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <TextInput label="Umbral de franja" {...bpc} {...form.getInputProps('fonasaUmbralBpc')} />
+            <TextInput label={<Etiqueta texto="Umbral de franja" ayuda={AYUDA.fonasaUmbralBpc} />}
+ aria-description={AYUDA.fonasaUmbralBpc} {...bpc} {...form.getInputProps('fonasaUmbralBpc')} />
             <div />
-            <TextInput label="Hasta el umbral, sin cónyuge" {...percent} {...form.getInputProps('fonasaBajoSinConyuge')} />
-            <TextInput label="Hasta el umbral, con cónyuge" {...percent} {...form.getInputProps('fonasaBajoConConyuge')} />
-            <TextInput label="Sobre el umbral, sin cargas" {...percent} {...form.getInputProps('fonasaAltoSinCargas')} />
-            <TextInput label="Sobre el umbral, con hijos" {...percent} {...form.getInputProps('fonasaAltoHijos')} />
-            <TextInput label="Sobre el umbral, con cónyuge" {...percent} {...form.getInputProps('fonasaAltoConyuge')} />
+            <TextInput label={<Etiqueta texto="Hasta el umbral, sin cónyuge" ayuda={AYUDA.fonasaBajoSinConyuge} />}
+ aria-description={AYUDA.fonasaBajoSinConyuge} {...percent} {...form.getInputProps('fonasaBajoSinConyuge')} />
+            <TextInput label={<Etiqueta texto="Hasta el umbral, con cónyuge" ayuda={AYUDA.fonasaBajoConConyuge} />}
+ aria-description={AYUDA.fonasaBajoConConyuge} {...percent} {...form.getInputProps('fonasaBajoConConyuge')} />
+            <TextInput label={<Etiqueta texto="Sobre el umbral, sin cargas" ayuda={AYUDA.fonasaAltoSinCargas} />}
+ aria-description={AYUDA.fonasaAltoSinCargas} {...percent} {...form.getInputProps('fonasaAltoSinCargas')} />
+            <TextInput label={<Etiqueta texto="Sobre el umbral, con hijos" ayuda={AYUDA.fonasaAltoHijos} />}
+ aria-description={AYUDA.fonasaAltoHijos} {...percent} {...form.getInputProps('fonasaAltoHijos')} />
+            <TextInput label={<Etiqueta texto="Sobre el umbral, con cónyuge" ayuda={AYUDA.fonasaAltoConyuge} />}
+ aria-description={AYUDA.fonasaAltoConyuge} {...percent} {...form.getInputProps('fonasaAltoConyuge')} />
             <TextInput
-              label="Sobre el umbral, cónyuge e hijos"
+              label={<Etiqueta texto="Sobre el umbral, cónyuge e hijos" ayuda={AYUDA.fonasaAltoConyugeHijos} />}
+ aria-description={AYUDA.fonasaAltoConyugeHijos}
               {...percent}
               {...form.getInputProps('fonasaAltoConyugeHijos')}
             />
@@ -112,23 +125,30 @@ export function ParametrosEditor({ version }: { version: ParametrosVersion }) {
 
         <Section title="IRPF">
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <TextInput label="Umbral del incremento" {...bpc} {...form.getInputProps('irpfIncrementoUmbralBpc')} />
-            <TextInput label="Incremento" {...percent} {...form.getInputProps('irpfIncremento')} />
-            <TextInput label="Umbral de tasa de deducción" {...bpc} {...form.getInputProps('irpfDeduccionUmbralBpc')} />
+            <TextInput label={<Etiqueta texto="Umbral del incremento" ayuda={AYUDA.irpfIncrementoUmbralBpc} />}
+ aria-description={AYUDA.irpfIncrementoUmbralBpc} {...bpc} {...form.getInputProps('irpfIncrementoUmbralBpc')} />
+            <TextInput label={<Etiqueta texto="Incremento" ayuda={AYUDA.irpfIncremento} />}
+ aria-description={AYUDA.irpfIncremento} {...percent} {...form.getInputProps('irpfIncremento')} />
+            <TextInput label={<Etiqueta texto="Umbral de tasa de deducción" ayuda={AYUDA.irpfDeduccionUmbralBpc} />}
+ aria-description={AYUDA.irpfDeduccionUmbralBpc} {...bpc} {...form.getInputProps('irpfDeduccionUmbralBpc')} />
             <div />
             <TextInput
-              label="Tasa de deducción hasta el umbral"
+              label={<Etiqueta texto="Tasa de deducción hasta el umbral" ayuda={AYUDA.irpfTasaDeduccionBaja} />}
+ aria-description={AYUDA.irpfTasaDeduccionBaja}
               {...percent}
               {...form.getInputProps('irpfTasaDeduccionBaja')}
             />
             <TextInput
-              label="Tasa de deducción sobre el umbral"
+              label={<Etiqueta texto="Tasa de deducción sobre el umbral" ayuda={AYUDA.irpfTasaDeduccionAlta} />}
+ aria-description={AYUDA.irpfTasaDeduccionAlta}
               {...percent}
               {...form.getInputProps('irpfTasaDeduccionAlta')}
             />
-            <TextInput label="Deducción anual por hijo" {...bpc} {...form.getInputProps('irpfHijoBpcAnual')} />
+            <TextInput label={<Etiqueta texto="Deducción anual por hijo" ayuda={AYUDA.irpfHijoBpcAnual} />}
+ aria-description={AYUDA.irpfHijoBpcAnual} {...bpc} {...form.getInputProps('irpfHijoBpcAnual')} />
             <TextInput
-              label="Deducción anual por hijo con discapacidad"
+              label={<Etiqueta texto="Deducción anual por hijo con discapacidad" ayuda={AYUDA.irpfHijoDiscBpcAnual} />}
+ aria-description={AYUDA.irpfHijoDiscBpcAnual}
               {...bpc}
               {...form.getInputProps('irpfHijoDiscBpcAnual')}
             />
@@ -139,9 +159,15 @@ export function ParametrosEditor({ version }: { version: ParametrosVersion }) {
           <Table withTableBorder aria-label="Franjas de IRPF">
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Desde (BPC)</Table.Th>
-                <Table.Th>Hasta (BPC)</Table.Th>
-                <Table.Th>Tasa (%)</Table.Th>
+                <Table.Th>
+<Etiqueta texto="Desde (BPC)" ayuda={AYUDA_FRANJA.desde} />
+</Table.Th>
+                <Table.Th>
+<Etiqueta texto="Hasta (BPC)" ayuda={AYUDA_FRANJA.hasta} />
+</Table.Th>
+                <Table.Th>
+<Etiqueta texto="Tasa (%)" ayuda={AYUDA_FRANJA.tasa} />
+</Table.Th>
                 <Table.Th w={40} />
               </Table.Tr>
             </Table.Thead>
