@@ -81,10 +81,11 @@ export function ParametrosEditor({ version }: { version: ParametrosVersion }) {
 
         <Section title="General">
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <MoneyInput label="Valor BPC" withAsterisk {...form.getInputProps('bpc')} />
+            <MoneyInput label="Valor BPC" withAsterisk rightSection="$" {...form.getInputProps('bpc')} />
             <MoneyInput
               label="Tope montepío"
               description="Vacío = sin tope"
+              rightSection="$"
               {...form.getInputProps('topeMontepio')}
             />
             <TextInput label="Montepío" {...percent} {...form.getInputProps('montepio')} />

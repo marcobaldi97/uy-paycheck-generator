@@ -1,6 +1,6 @@
 // Read-only history of a worker's conditions, newest first.
 
-import { Badge, Table, Text } from '@mantine/core'
+import { Badge, Group, Paper, Stack, Table, Text } from '@mantine/core'
 import { formatMoney, formatRatePercent } from '@shared/money'
 import type { Condicion } from '@shared/types'
 import { condicionVigente, formatFecha } from './forms'
@@ -25,6 +25,8 @@ export function CondicionesHistorial({ condiciones, hoy }: CondicionesHistorialP
   const vigente = condicionVigente(condiciones, hoy)
 
   return (
+    <Stack>
+      {vigente && <CondicionVigente condicion={vigente} />}
     <Table.ScrollContainer minWidth={800}>
       <Table verticalSpacing="sm">
         <Table.Thead>
@@ -69,5 +71,40 @@ export function CondicionesHistorial({ condiciones, hoy }: CondicionesHistorialP
         </Table.Tbody>
       </Table>
     </Table.ScrollContainer>
+    </Stack>
+  )
+}
+
+function CondicionVigente({ condicion: c }: { condicion: Condicion }) {
+  const chips = [
+    c.fonasaConyuge && 'Cónyuge a cargo',
+    c.fonasaHijos && 'Hijos a cargo (FONASA)',
+    c.irpfHijos > 0 && `IRPF: ${c.irpfHijos} ${c.irpfHijos === 1 ? 'hijo' : 'hijos'}`,
+    c.irpfHijosDiscapacidad > 0 && `${c.irpfHijosDiscapacidad} con discapacidad`,
+    c.fonasaTasaManual !== null && `FONASA manual ${formatRatePercent(c.fonasaTasaManual)}%`,
+  ].filter((chip): chip is string => chip !== false)
+  return (
+    <Paper radius="lg" p="lg" bg="forest.0" style={{ border: '1px solid var(--mantine-color-forest-1)' }}>
+      <Group justify="space-between" align="center" gap="lg">
+        <div>
+          <Text size="sm" fw={600} c="forest.7">
+            Condición en uso desde {formatFecha(c.vigenteDesde)}
+          </Text>
+          <Text ff="var(--mantine-font-family-headings)" fz={30} lh={1.15}>
+            $ {formatMoney(c.sueldoNominal)}{' '}
+            <Text span size="sm" ff="var(--mantine-font-family)" c="dimmed">
+              sueldo nominal
+            </Text>
+          </Text>
+        </div>
+        <Group gap="xs" justify="flex-end">
+          {chips.map((chip) => (
+            <Badge key={chip} color="forest" variant="white" size="lg" tt="none" fw={500}>
+              {chip}
+            </Badge>
+          ))}
+        </Group>
+      </Group>
+    </Paper>
   )
 }
