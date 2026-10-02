@@ -40,8 +40,6 @@ export const trabajadores = sqliteTable(
     fechaIngreso: text('fecha_ingreso').notNull(),
     afiliacionBps: text('afiliacion_bps').notNull(),
     carpetaBse: text('carpeta_bse').notNull(),
-    lugarCobro: text('lugar_cobro').notNull(),
-    lugarTrabajo: text('lugar_trabajo').notNull(),
     activo: integer('activo', { mode: 'boolean' }).notNull(),
   },
   (t) => [uniqueIndex('trabajadores_numero_unique').on(t.numero)],

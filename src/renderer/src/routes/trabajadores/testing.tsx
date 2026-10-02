@@ -24,8 +24,6 @@ export function trabajadorDePrueba(id: number, extra: Partial<Trabajador> = {}):
     fechaIngreso: '2020-01-15',
     afiliacionBps: '',
     carpetaBse: '',
-    lugarCobro: '',
-    lugarTrabajo: '',
     activo: true,
     ...extra,
   }

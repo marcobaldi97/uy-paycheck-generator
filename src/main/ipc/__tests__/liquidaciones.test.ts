@@ -59,8 +59,6 @@ describe('liquidaciones IPC', () => {
       fechaIngreso: '2020-01-01',
       afiliacionBps: '',
       carpetaBse: '',
-      lugarCobro: '',
-      lugarTrabajo: '',
       activo: true,
     })
     repo.addCondicion(t.id, {

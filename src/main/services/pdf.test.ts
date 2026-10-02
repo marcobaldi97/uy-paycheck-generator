@@ -110,8 +110,6 @@ function trabajador(numero: number, nombre: string): TrabajadorInput {
     fechaIngreso: '2020-03-01',
     afiliacionBps: '',
     carpetaBse: '',
-    lugarCobro: 'Montevideo',
-    lugarTrabajo: 'Montevideo',
     activo: true,
   }
 }

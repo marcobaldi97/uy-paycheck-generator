@@ -23,8 +23,6 @@ export const reciboCarmona: ReciboImpresion = {
     fechaIngreso: '2019-03-01',
     afiliacionBps: '1234567',
     carpetaBse: '98765',
-    lugarCobro: 'Montevideo',
-    lugarTrabajo: 'Montevideo',
     sueldoNominal: 3_000_000,
   },
   liquidacion: { periodo: '2024-08', fechaCargo: '2024-08-31', fechaPago: '2024-09-05' },

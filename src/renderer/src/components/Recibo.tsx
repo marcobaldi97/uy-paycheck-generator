@@ -86,8 +86,6 @@ export function ReciboEjemplar({ datos, ejemplar }: { datos: ReciboImpresion; ej
         <Campo etiqueta="Sueldo nominal:" valor={formatMoney(trabajador.sueldoNominal)} />
         <Campo etiqueta="Afiliación BPS:" valor={trabajador.afiliacionBps} />
         <Campo etiqueta="Carpeta BSE:" valor={trabajador.carpetaBse} />
-        <Campo etiqueta="Lugar de cobro:" valor={trabajador.lugarCobro} />
-        <Campo etiqueta="Lugar de trabajo:" valor={trabajador.lugarTrabajo} />
       </div>
 
       <div className={classes.cuerpo}>

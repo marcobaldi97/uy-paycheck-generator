@@ -36,8 +36,6 @@ export interface Trabajador {
   fechaIngreso: IsoDate
   afiliacionBps: string
   carpetaBse: string
-  lugarCobro: string
-  lugarTrabajo: string
   activo: boolean
 }
 
