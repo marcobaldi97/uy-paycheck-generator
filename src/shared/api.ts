@@ -5,10 +5,12 @@
 // with the matching schema in `schemas.ts`.
 
 import type {
+  Cents,
   Condicion,
   CondicionInput,
   Empresa,
   Impresora,
+  IsoDate,
   Liquidacion,
   LiquidacionDetalle,
   LiquidacionResumen,
@@ -21,6 +23,7 @@ import type {
   RespaldoInfo,
   ResultadoExportacion,
   ResultadoRespaldo,
+  TasaFonasaPreview,
   Trabajador,
   TrabajadorDetalle,
   TrabajadorInput,
@@ -84,6 +87,11 @@ export interface ApiSpec {
     actualizar: { input: { id: number; datos: TrabajadorInput }; output: Trabajador }
     /** Adds a new version; never edits existing rows. */
     nuevaCondicion: { input: { trabajadorId: number; condicion: CondicionInput }; output: Condicion }
+    /** Preview for the condición form; the receipt uses the month's imponible instead of the sueldo. */
+    tasaFonasa: {
+      input: { fecha: IsoDate; sueldoNominal: Cents; fonasaConyuge: boolean; fonasaHijos: boolean }
+      output: TasaFonasaPreview
+    }
   }
   parametros: {
     /** Newest first. */
@@ -156,7 +164,7 @@ export type Api = {
 /** Runtime list of methods; the preload builds `window.api` from it. Must match ApiSpec exactly. */
 export const API_METHODS = {
   empresa: { obtener: true, guardar: true },
-  trabajadores: { listar: true, obtener: true, crear: true, actualizar: true, nuevaCondicion: true },
+  trabajadores: { listar: true, obtener: true, crear: true, actualizar: true, nuevaCondicion: true, tasaFonasa: true },
   parametros: { listar: true, nuevaVersion: true, actualizar: true },
   liquidaciones: {
     listar: true,

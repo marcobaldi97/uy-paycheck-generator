@@ -71,6 +71,15 @@ export interface TrabajadorDetalle {
   condiciones: Condicion[]
 }
 
+/** FONASA rate main would pick for a sueldo and family flags, under the parámetros in force. */
+export interface TasaFonasaPreview {
+  tasa: Rate
+  /** True when the sueldo is above `fonasaUmbralBpc` × BPC. */
+  bandaAlta: boolean
+  /** vigenteDesde of the parámetros version used. */
+  parametrosVigenteDesde: IsoDate
+}
+
 // ---------------------------------------------------------------- parámetros
 
 export interface FranjaIrpf {

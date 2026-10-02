@@ -27,6 +27,7 @@ export const queryKeys = {
     all: ['trabajadores'] as const,
     listar: (soloActivos: boolean) => ['trabajadores', 'listar', { soloActivos }] as const,
     obtener: (id: number) => ['trabajadores', 'obtener', id] as const,
+    tasaFonasa: (input: ApiInput<'trabajadores', 'tasaFonasa'>) => ['trabajadores', 'tasaFonasa', input] as const,
   },
   parametros: {
     all: ['parametros'] as const,
@@ -151,6 +152,20 @@ export function useActualizarTrabajador(options?: MutationOptions<'trabajadores'
 
 export function useNuevaCondicion(options?: MutationOptions<'trabajadores', 'nuevaCondicion'>) {
   return useApiMutation('trabajadores', 'nuevaCondicion', afterTrabajadorChange, options)
+}
+
+/** FONASA rate preview; `null` input (incomplete form) disables the query. */
+export function useTasaFonasa(
+  input: ApiInput<'trabajadores', 'tasaFonasa'> | null,
+  options?: QueryOptions<'trabajadores', 'tasaFonasa'>,
+) {
+  return useApiQuery(
+    input ? queryKeys.trabajadores.tasaFonasa(input) : ['trabajadores', 'tasaFonasa', null],
+    'trabajadores',
+    'tasaFonasa',
+    [input as ApiInput<'trabajadores', 'tasaFonasa'>],
+    { ...options, enabled: input !== null && (options?.enabled ?? true) },
+  )
 }
 
 // ---------------------------------------------------------------- parametros

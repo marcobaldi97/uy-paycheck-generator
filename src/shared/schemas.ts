@@ -144,6 +144,12 @@ export const inputSchemas = {
     crear: trabajadorInputSchema,
     actualizar: z.object({ id: idSchema, datos: trabajadorInputSchema }),
     nuevaCondicion: z.object({ trabajadorId: idSchema, condicion: condicionInputSchema }),
+    tasaFonasa: z.object({
+      fecha: isoDateSchema,
+      sueldoNominal: nonNegativeCentsSchema,
+      fonasaConyuge: z.boolean(),
+      fonasaHijos: z.boolean(),
+    }),
   },
   parametros: {
     listar: noInput,

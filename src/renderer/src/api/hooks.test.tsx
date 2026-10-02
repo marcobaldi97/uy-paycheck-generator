@@ -16,6 +16,7 @@ const hookByMethod = {
     crear: hooks.useCrearTrabajador,
     actualizar: hooks.useActualizarTrabajador,
     nuevaCondicion: hooks.useNuevaCondicion,
+    tasaFonasa: hooks.useTasaFonasa,
   },
   parametros: {
     listar: hooks.useParametros,
