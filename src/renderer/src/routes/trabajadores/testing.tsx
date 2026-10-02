@@ -88,6 +88,8 @@ export function instalarApiFalsa(trabajadores: Trabajador[] = [], condiciones: C
       db.condiciones.push(creada)
       return ok(creada)
     }),
+    // Fixed answer; the rate selection itself is tested in main.
+    tasaFonasa: vi.fn(async () => ok({ tasa: '0.06', bandaAlta: true, parametrosVigenteDesde: '2025-01-01' })),
   }
   window.api = { trabajadores: api } as unknown as Api
   return { api, db }
