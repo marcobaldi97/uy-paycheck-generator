@@ -83,7 +83,6 @@ export function ReciboEjemplar({ datos, ejemplar }: { datos: ReciboImpresion; ej
       </header>
 
       <div className={classes.trabajador}>
-        <Campo etiqueta="Nº:" valor={String(trabajador.numero)} />
         <Campo etiqueta="Nombre:" valor={trabajador.nombre} ancho />
         <Campo etiqueta="C.I.:" valor={trabajador.ci} />
         <Campo etiqueta="Cargo y categoría:" valor={trabajador.cargo} ancho />

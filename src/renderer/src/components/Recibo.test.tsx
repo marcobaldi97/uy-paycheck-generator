@@ -43,6 +43,7 @@ describe('Recibo (Carmona 08/2024)', () => {
     expect(texto).toContain('EMPRESA DE PRUEBA S.A.')
     expect(texto).toContain('RUT: 211234560018')
     expect(texto).toContain('Nº MTSS: 1234567')
+    expect(texto).not.toContain('Nº:')
     expect(texto).toContain('Afiliación BPS: 1234567 · Carpeta BSE: 98765')
     expect(texto).toContain('Remuneración: 08/2024')
     expect(texto).toContain('Recibí conforme el importe neto de esta liquidación y una copia de la misma.')
