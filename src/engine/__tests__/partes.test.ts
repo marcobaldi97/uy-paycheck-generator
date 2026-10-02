@@ -41,14 +41,16 @@ describe('irpf', () => {
 })
 
 describe('redondeo', () => {
-  it('rounds to whole pesos half-up', () => {
+  it('always rounds up to the next whole peso', () => {
     expect(redondearAPesos(2_306_250)).toBe(2_306_300)
-    expect(redondearAPesos(2_306_249)).toBe(2_306_200)
-    expect(redondearAPesos(-150)).toBe(-200)
+    expect(redondearAPesos(2_306_249)).toBe(2_306_300)
+    expect(redondearAPesos(2_306_201)).toBe(2_306_300)
+    expect(redondearAPesos(2_306_200)).toBe(2_306_200)
+    expect(redondearAPesos(-150)).toBe(-100)
   })
-  it('redondeo = unrounded − rounded', () => {
+  it('redondeo = unrounded − rounded, never positive', () => {
     expect(calcularRedondeo(2_306_250)).toEqual({ redondeo: -50, liquido: 2_306_300 })
-    expect(calcularRedondeo(2_306_220)).toEqual({ redondeo: 20, liquido: 2_306_200 })
+    expect(calcularRedondeo(2_306_220)).toEqual({ redondeo: -80, liquido: 2_306_300 })
     expect(calcularRedondeo(100)).toEqual({ redondeo: 0, liquido: 100 })
   })
 })

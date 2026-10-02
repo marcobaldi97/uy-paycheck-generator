@@ -186,9 +186,9 @@ describe('calcularRecibo', () => {
       'Redondeo',
     ])
     expect(r.lineas.filter((l) => l.origen === 'manual')).toHaveLength(3)
-    // 36000 − 4650 − 1395 (4,5%) − 38,75 − 3000 = 26916,25 → 26916
-    expect(importe(r, 'REDONDEO')).toBe(25)
-    expect(r.liquido).toBe(2_691_600)
+    // 36000 − 4650 − 1395 (4,5%) − 38,75 − 3000 = 26916,25 → 26917 (always up)
+    expect(importe(r, 'REDONDEO')).toBe(-75)
+    expect(r.liquido).toBe(2_691_700)
     expect(r.totalHaberes - r.totalDescuentos).toBe(r.liquido)
   })
 })

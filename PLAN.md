@@ -175,7 +175,7 @@ Sources: [BPS Comunicado R 5/2026](https://www.bps.gub.uy/bps/file/23860/3/2026-
    3. deducciones = montepío + FONASA + FRL + (hijos × 20 BPC/12 + disc × 40 BPC/12) × pct + otras.
    4. tasa = 14% if renta (after increment) ≤ 15 BPC, else 8%.
    5. IRPF = max(0, bruto − deducciones × tasa); line omitted when 0.
-6. Redondeo: líquido rounded to whole pesos, half-up; redondeo = unrounded − rounded, placed in descuentos (can be negative).
+6. Redondeo: líquido rounded up to the next whole peso (never down); redondeo = unrounded − rounded, placed in descuentos (always ≤ 0).
 
 ### Overrides
 
