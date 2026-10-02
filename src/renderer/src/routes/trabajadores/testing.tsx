@@ -25,7 +25,6 @@ export function trabajadorDePrueba(id: number, extra: Partial<Trabajador> = {}):
     afiliacionBps: '',
     carpetaBse: '',
     lugarCobro: '',
-    centroCostos: '',
     lugarTrabajo: '',
     activo: true,
     ...extra,

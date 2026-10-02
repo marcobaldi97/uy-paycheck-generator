@@ -1,0 +1,1 @@
+ALTER TABLE `trabajadores` DROP COLUMN `centro_costos`;

@@ -63,7 +63,6 @@ export function TrabajadorForm({ initialValues, submitLabel, onGuardar, requireD
           <TextInput label="Afiliación BPS" {...form.getInputProps('afiliacionBps')} />
           <TextInput label="Carpeta BSE" {...form.getInputProps('carpetaBse')} />
           <TextInput label="Lugar de cobro" {...form.getInputProps('lugarCobro')} />
-          <TextInput label="Centro de costos" {...form.getInputProps('centroCostos')} />
           <TextInput label="Lugar de trabajo" {...form.getInputProps('lugarTrabajo')} />
         </SimpleGrid>
         <Checkbox label="Activo" {...form.getInputProps('activo', { type: 'checkbox' })} />

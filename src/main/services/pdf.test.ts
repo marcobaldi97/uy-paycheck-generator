@@ -111,7 +111,6 @@ function trabajador(numero: number, nombre: string): TrabajadorInput {
     afiliacionBps: '',
     carpetaBse: '',
     lugarCobro: 'Montevideo',
-    centroCostos: '',
     lugarTrabajo: 'Montevideo',
     activo: true,
   }

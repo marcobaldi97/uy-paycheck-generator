@@ -60,7 +60,6 @@ describe('liquidaciones IPC', () => {
       afiliacionBps: '',
       carpetaBse: '',
       lugarCobro: '',
-      centroCostos: '',
       lugarTrabajo: '',
       activo: true,
     })

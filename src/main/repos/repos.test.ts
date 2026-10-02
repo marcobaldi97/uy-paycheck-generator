@@ -45,7 +45,6 @@ function trabajador(numero: number, extra: Partial<TrabajadorInput> = {}): Traba
     afiliacionBps: '',
     carpetaBse: '',
     lugarCobro: 'Montevideo',
-    centroCostos: '',
     lugarTrabajo: 'Montevideo',
     activo: true,
     ...extra,

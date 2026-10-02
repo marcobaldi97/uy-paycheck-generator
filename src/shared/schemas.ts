@@ -49,7 +49,6 @@ export const trabajadorInputSchema = z.object({
   afiliacionBps: z.string().trim(),
   carpetaBse: z.string().trim(),
   lugarCobro: z.string().trim(),
-  centroCostos: z.string().trim(),
   lugarTrabajo: z.string().trim(),
   activo: z.boolean(),
 }) satisfies z.ZodType<TrabajadorInput>

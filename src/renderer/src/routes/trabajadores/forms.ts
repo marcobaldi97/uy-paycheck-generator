@@ -31,7 +31,6 @@ export const trabajadorVacio = (numero: number | ''): TrabajadorFormValues => ({
   afiliacionBps: '',
   carpetaBse: '',
   lugarCobro: '',
-  centroCostos: '',
   lugarTrabajo: '',
   activo: true,
 })

@@ -37,7 +37,6 @@ export interface Trabajador {
   afiliacionBps: string
   carpetaBse: string
   lugarCobro: string
-  centroCostos: string
   lugarTrabajo: string
   activo: boolean
 }

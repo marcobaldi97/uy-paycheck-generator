@@ -42,7 +42,6 @@ export function snapshotTrabajador(t: Trabajador, sueldoNominal: number): Trabaj
     afiliacionBps: t.afiliacionBps,
     carpetaBse: t.carpetaBse,
     lugarCobro: t.lugarCobro,
-    centroCostos: t.centroCostos,
     lugarTrabajo: t.lugarTrabajo,
     sueldoNominal,
   }

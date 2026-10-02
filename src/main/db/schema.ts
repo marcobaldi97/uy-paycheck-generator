@@ -41,7 +41,6 @@ export const trabajadores = sqliteTable(
     afiliacionBps: text('afiliacion_bps').notNull(),
     carpetaBse: text('carpeta_bse').notNull(),
     lugarCobro: text('lugar_cobro').notNull(),
-    centroCostos: text('centro_costos').notNull(),
     lugarTrabajo: text('lugar_trabajo').notNull(),
     activo: integer('activo', { mode: 'boolean' }).notNull(),
   },

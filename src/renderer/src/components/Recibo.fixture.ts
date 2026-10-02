@@ -24,7 +24,6 @@ export const reciboCarmona: ReciboImpresion = {
     afiliacionBps: '1234567',
     carpetaBse: '98765',
     lugarCobro: 'Montevideo',
-    centroCostos: 'Administración',
     lugarTrabajo: 'Montevideo',
     sueldoNominal: 3_000_000,
   },
