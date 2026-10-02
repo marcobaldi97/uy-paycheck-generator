@@ -5,7 +5,7 @@
 import { Alert, Anchor, Badge, Button, Card, Group, Loader, Modal, Stack, Title } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import dayjs from 'dayjs'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { errorMessage, isApiErrorCode } from '../../api/client'
 import { useActualizarTrabajador, useCrearTrabajador, useNuevaCondicion, useTrabajador, useTrabajadores } from '../../api/hooks'
@@ -14,7 +14,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { paths } from '../../paths'
 import { CondicionesHistorial } from './CondicionesHistorial'
 import { CondicionForm } from './CondicionForm'
-import { nuevaCondicionInicial, siguienteNumero, trabajadorAForm, trabajadorVacio } from './forms'
+import { cargosExistentes, nuevaCondicionInicial, siguienteNumero, trabajadorAForm, trabajadorVacio } from './forms'
 import { TrabajadorForm } from './TrabajadorForm'
 
 export function TrabajadorDetallePage() {
@@ -48,6 +48,7 @@ function NoEncontrado() {
 function NuevoTrabajador() {
   const navigate = useNavigate()
   const todos = useTrabajadores(false)
+  const cargos = useMemo(() => (todos.data ? cargosExistentes(todos.data) : []), [todos.data])
   const crear = useCrearTrabajador()
 
   return (
@@ -62,6 +63,7 @@ function NuevoTrabajador() {
             // Suggest the next number once the list is known; empty if it failed to load.
             initialValues={trabajadorVacio(todos.data ? siguienteNumero(todos.data) : '')}
             submitLabel="Crear trabajador"
+            cargos={cargos}
             onGuardar={async (input) => {
               const creado = await crear.mutateAsync(input)
               notifications.show({ color: 'green', message: 'Trabajador creado. Agregue sus condiciones.' })
@@ -76,6 +78,9 @@ function NuevoTrabajador() {
 
 function TrabajadorExistente({ id }: { id: number }) {
   const { data, error, isPending } = useTrabajador(id)
+  // Suggestions only: the form does not wait for this list.
+  const todos = useTrabajadores(false)
+  const cargos = useMemo(() => (todos.data ? cargosExistentes(todos.data) : []), [todos.data])
   const actualizar = useActualizarTrabajador()
   const nuevaCondicion = useNuevaCondicion()
   const [condicionAbierta, setCondicionAbierta] = useState(false)
@@ -123,6 +128,7 @@ function TrabajadorExistente({ id }: { id: number }) {
             initialValues={trabajadorAForm(trabajador)}
             submitLabel="Guardar"
             requireDirty
+            cargos={cargos}
             onGuardar={async (datos) => {
               await actualizar.mutateAsync({ id, datos })
               notifications.show({ color: 'green', message: 'Datos guardados.' })

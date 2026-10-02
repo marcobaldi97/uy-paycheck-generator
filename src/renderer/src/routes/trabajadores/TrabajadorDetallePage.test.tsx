@@ -172,6 +172,31 @@ describe('TrabajadorDetallePage', () => {
     expect(await modal.findByText('Requerido')).toBeInTheDocument()
   })
 
+  it('suggests cargos of existing workers, active or not, when creating one', async () => {
+    const { api } = instalarApiFalsa([
+      trabajadorDePrueba(1, { cargo: 'Administrativo' }),
+      trabajadorDePrueba(2, { cargo: 'Gerente de ventas', activo: false }),
+      trabajadorDePrueba(3, { cargo: '' }),
+    ])
+    renderTrabajadores(paths.trabajador('nuevo'))
+
+    const cargo = await screen.findByLabelText('Cargo')
+    await userEvent.click(cargo)
+    expect(await screen.findByRole('option', { name: 'Administrativo' })).toBeInTheDocument()
+    await userEvent.type(cargo, 'ger')
+    expect(screen.queryByRole('option', { name: 'Administrativo' })).not.toBeInTheDocument()
+    await userEvent.click(await screen.findByRole('option', { name: 'Gerente de ventas' }))
+    expect(cargo).toHaveValue('Gerente de ventas')
+
+    await userEvent.type(screen.getByLabelText(/Nombre/), 'CARLOS')
+    await userEvent.type(screen.getByLabelText(/C\.I\./), '2.222.222-2')
+    fireEvent.change(screen.getByLabelText(/Fecha de ingreso/), { target: { value: '2026-09-01' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Crear trabajador' }))
+
+    await waitFor(() => expect(api.crear).toHaveBeenCalledTimes(1))
+    expect(api.crear).toHaveBeenCalledWith(expect.objectContaining({ nombre: 'CARLOS', cargo: 'Gerente de ventas' }))
+  })
+
   it('shows not found for unknown or malformed ids', async () => {
     const { api } = conCondiciones()
     renderTrabajadores(paths.trabajador(99))

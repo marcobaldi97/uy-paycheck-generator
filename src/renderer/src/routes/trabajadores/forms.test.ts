@@ -1,6 +1,7 @@
 import type { Condicion, Trabajador } from '@shared/types'
 import { describe, expect, it } from 'vitest'
 import {
+  cargosExistentes,
   condicionFormSchema,
   condicionVigente,
   formACondicionInput,
@@ -111,5 +112,35 @@ describe('condicionVigente', () => {
     expect(condicionVigente(condiciones, '2026-09-28')?.id).toBe(2)
     expect(condicionVigente(condiciones, '2026-03-01')?.id).toBe(2)
     expect(condicionVigente(condiciones, '2024-01-01')).toBeUndefined()
+  })
+})
+
+describe('cargosExistentes', () => {
+  const con = (id: number, cargo: string): Trabajador => ({
+    id,
+    ...trabajadorVacio(id),
+    numero: id,
+    nombre: `T${id}`,
+    ci: '1.234.567-8',
+    fechaIngreso: '2020-02-01',
+    cargo,
+  })
+
+  it('returns nothing for no workers or blank cargos', () => {
+    expect(cargosExistentes([])).toEqual([])
+    expect(cargosExistentes([con(1, ''), con(2, '   ')])).toEqual([])
+  })
+
+  it('trims and dedupes ignoring case, keeping the first spelling', () => {
+    expect(cargosExistentes([con(1, ' Peón '), con(2, 'PEÓN'), con(3, 'peón'), con(4, 'Peón')])).toEqual(['Peón'])
+  })
+
+  it('sorts alphabetically in Spanish', () => {
+    expect(cargosExistentes([con(1, 'Vendedor'), con(2, 'administrativo'), con(3, 'Ñandú'), con(4, 'Cajero')])).toEqual([
+      'administrativo',
+      'Cajero',
+      'Ñandú',
+      'Vendedor',
+    ])
   })
 })

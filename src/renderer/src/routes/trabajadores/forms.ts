@@ -51,6 +51,20 @@ export function siguienteNumero(trabajadores: readonly Trabajador[]): number {
   return trabajadores.reduce((max, t) => Math.max(max, t.numero), 0) + 1
 }
 
+/**
+ * Cargos already in use, offered as suggestions in the form: trimmed, without empties,
+ * deduplicated ignoring case (the first spelling wins), sorted alphabetically.
+ */
+export function cargosExistentes(trabajadores: readonly Trabajador[]): string[] {
+  const porClave = new Map<string, string>()
+  for (const t of trabajadores) {
+    const cargo = t.cargo.trim()
+    const clave = cargo.toLocaleLowerCase('es')
+    if (cargo !== '' && !porClave.has(clave)) porClave.set(clave, cargo)
+  }
+  return [...porClave.values()].sort((a, b) => a.localeCompare(b, 'es'))
+}
+
 // ---------------------------------------------------------------- condición
 
 export interface CondicionFormValues {

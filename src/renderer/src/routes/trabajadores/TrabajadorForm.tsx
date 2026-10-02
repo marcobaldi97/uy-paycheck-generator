@@ -1,6 +1,6 @@
 // Identity form for a worker, used both to create and to edit.
 
-import { Alert, Button, Checkbox, Group, NumberInput, SimpleGrid, Stack, TextInput } from '@mantine/core'
+import { Alert, Autocomplete, Button, Checkbox, Group, NumberInput, SimpleGrid, Stack, TextInput } from '@mantine/core'
 import { schemaResolver, useForm } from '@mantine/form'
 import type { TrabajadorInput } from '@shared/types'
 import { useState } from 'react'
@@ -14,9 +14,17 @@ export interface TrabajadorFormProps {
   onGuardar: (input: TrabajadorInput) => Promise<unknown>
   /** Edit mode: keep the button disabled until something changes. */
   requireDirty?: boolean
+  /** Suggestions for "Cargo"; any other text is still accepted. */
+  cargos?: string[]
 }
 
-export function TrabajadorForm({ initialValues, submitLabel, onGuardar, requireDirty = false }: TrabajadorFormProps) {
+export function TrabajadorForm({
+  initialValues,
+  submitLabel,
+  onGuardar,
+  requireDirty = false,
+  cargos = [],
+}: TrabajadorFormProps) {
   const form = useForm<TrabajadorFormValues>({
     initialValues,
     validate: schemaResolver(trabajadorFormSchema, { sync: true }),
@@ -58,7 +66,13 @@ export function TrabajadorForm({ initialValues, submitLabel, onGuardar, requireD
           />
           <TextInput label="Nombre" withAsterisk {...form.getInputProps('nombre')} />
           <TextInput label="C.I." withAsterisk {...form.getInputProps('ci')} />
-          <TextInput label="Cargo" {...form.getInputProps('cargo')} />
+          {/* Unmount the closed dropdown: its listbox is also labelled "Cargo". */}
+          <Autocomplete
+            label="Cargo"
+            data={cargos}
+            comboboxProps={{ keepMounted: false }}
+            {...form.getInputProps('cargo')}
+          />
           <TextInput label="Fecha de ingreso" type="date" withAsterisk {...form.getInputProps('fechaIngreso')} />
           <TextInput label="Afiliación BPS" {...form.getInputProps('afiliacionBps')} />
           <TextInput label="Carpeta BSE" {...form.getInputProps('carpetaBse')} />
