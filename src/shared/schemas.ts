@@ -36,6 +36,8 @@ export const empresaSchema = z.object({
   direccion: z.string().trim(),
   rut: requiredText,
   nroMtss: z.string().trim(),
+  afiliacionBps: z.string().trim(),
+  carpetaBse: z.string().trim(),
   grupo: z.string().trim(),
   subgrupo: z.string().trim(),
 }) satisfies z.ZodType<Empresa>
@@ -46,8 +48,6 @@ export const trabajadorInputSchema = z.object({
   nombre: requiredText,
   cargo: z.string().trim(),
   fechaIngreso: isoDateSchema,
-  afiliacionBps: z.string().trim(),
-  carpetaBse: z.string().trim(),
   activo: z.boolean(),
 }) satisfies z.ZodType<TrabajadorInput>
 

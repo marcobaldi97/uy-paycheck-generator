@@ -74,8 +74,6 @@ export function TrabajadorForm({
             {...form.getInputProps('cargo')}
           />
           <TextInput label="Fecha de ingreso" type="date" withAsterisk {...form.getInputProps('fechaIngreso')} />
-          <TextInput label="Afiliación BPS" {...form.getInputProps('afiliacionBps')} />
-          <TextInput label="Carpeta BSE" {...form.getInputProps('carpetaBse')} />
         </SimpleGrid>
         <Checkbox label="Activo" {...form.getInputProps('activo', { type: 'checkbox' })} />
         <Group justify="flex-end">

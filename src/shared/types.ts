@@ -21,6 +21,8 @@ export interface Empresa {
   direccion: string
   rut: string
   nroMtss: string
+  afiliacionBps: string
+  carpetaBse: string
   grupo: string
   subgrupo: string
 }
@@ -34,8 +36,6 @@ export interface Trabajador {
   nombre: string
   cargo: string
   fechaIngreso: IsoDate
-  afiliacionBps: string
-  carpetaBse: string
   activo: boolean
 }
 

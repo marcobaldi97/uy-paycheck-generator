@@ -11,8 +11,6 @@ function pickTrabajador(input: TrabajadorInput): TrabajadorInput {
     nombre: input.nombre,
     cargo: input.cargo,
     fechaIngreso: input.fechaIngreso,
-    afiliacionBps: input.afiliacionBps,
-    carpetaBse: input.carpetaBse,
     activo: input.activo,
   }
 }

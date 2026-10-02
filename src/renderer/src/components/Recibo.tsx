@@ -58,6 +58,11 @@ export function ReciboEjemplar({ datos, ejemplar }: { datos: ReciboImpresion; ej
             {' · '}
             <Etiqueta>Subgrupo:</Etiqueta> {empresa.subgrupo}
           </p>
+          <p className={classes.linea}>
+            <Etiqueta>Afiliación BPS:</Etiqueta> {empresa.afiliacionBps}
+            {' · '}
+            <Etiqueta>Carpeta BSE:</Etiqueta> {empresa.carpetaBse}
+          </p>
         </div>
         <div className={classes.titulo}>
           <p className={classes.tituloTexto}>RECIBO DE SUELDO</p>
@@ -84,8 +89,6 @@ export function ReciboEjemplar({ datos, ejemplar }: { datos: ReciboImpresion; ej
         <Campo etiqueta="Cargo y categoría:" valor={trabajador.cargo} ancho />
         <Campo etiqueta="Fecha de ingreso:" valor={formatFecha(trabajador.fechaIngreso)} />
         <Campo etiqueta="Sueldo nominal:" valor={formatMoney(trabajador.sueldoNominal)} />
-        <Campo etiqueta="Afiliación BPS:" valor={trabajador.afiliacionBps} />
-        <Campo etiqueta="Carpeta BSE:" valor={trabajador.carpetaBse} />
       </div>
 
       <div className={classes.cuerpo}>

@@ -24,7 +24,7 @@ import { empresaRepo } from '../repos/empresa'
 import type { ReciboRow } from '../repos/liquidaciones'
 import { trabajadoresRepo } from '../repos/trabajadores'
 
-export const EMPRESA_VACIA: Empresa = { nombre: '', direccion: '', rut: '', nroMtss: '', grupo: '', subgrupo: '' }
+export const EMPRESA_VACIA: Empresa = { nombre: '', direccion: '', rut: '', nroMtss: '', afiliacionBps: '', carpetaBse: '', grupo: '', subgrupo: '' }
 
 /** Date used to resolve conditions and parameters for a period: its last day. */
 export function fechaResolucion(periodo: Periodo): IsoDate {
@@ -39,8 +39,6 @@ export function snapshotTrabajador(t: Trabajador, sueldoNominal: number): Trabaj
     nombre: t.nombre,
     cargo: t.cargo,
     fechaIngreso: t.fechaIngreso,
-    afiliacionBps: t.afiliacionBps,
-    carpetaBse: t.carpetaBse,
     sueldoNominal,
   }
 }

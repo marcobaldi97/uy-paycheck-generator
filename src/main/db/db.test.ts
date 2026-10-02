@@ -1,11 +1,12 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import Database from 'better-sqlite3'
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { conceptosRepo } from '../repos/conceptos'
 import { parametrosRepo } from '../repos/parametros'
 import { CONCEPTOS_SEED, PARAMETROS_2026, seed } from './seed'
-import { openTestDb } from './testing'
+import { MIGRATIONS_FOLDER, openTestDb } from './testing'
 
 const TABLES = [
   'ajustes',
@@ -33,6 +34,31 @@ describe('migrations', () => {
   it('enable foreign keys', () => {
     const db = openTestDb()
     expect(db.$client.pragma('foreign_keys', { simple: true })).toBe(1)
+  })
+
+  it('0003 moves afiliación BPS and carpeta BSE from trabajadores to empresa', () => {
+    const client = new Database(':memory:')
+    const apply = (prefix: string) => {
+      const file = readdirSync(MIGRATIONS_FOLDER).find((f) => f.startsWith(prefix) && f.endsWith('.sql'))!
+      for (const sql of readFileSync(join(MIGRATIONS_FOLDER, file), 'utf8').split('--> statement-breakpoint')) {
+        client.exec(sql)
+      }
+    }
+    for (const prefix of ['0000', '0001', '0002']) apply(prefix)
+    client.exec(`
+      INSERT INTO empresa VALUES (1, 'E', '', '1', '', '', '');
+      INSERT INTO trabajadores (numero, ci, nombre, cargo, fecha_ingreso, afiliacion_bps, carpeta_bse, activo) VALUES
+        (2, 'b', 'B', '', '2020-01-01', '222', '', 1),
+        (1, 'a', 'A', '', '2020-01-01', '', '', 1),
+        (3, 'c', 'C', '', '2020-01-01', '333', '999', 1);
+    `)
+    apply('0003')
+    expect(client.prepare('select afiliacion_bps, carpeta_bse from empresa').get()).toEqual({
+      afiliacion_bps: '222',
+      carpeta_bse: '999',
+    })
+    const columnas = client.prepare('pragma table_info(trabajadores)').all() as { name: string }[]
+    expect(columnas.map((c) => c.name)).not.toContain('afiliacion_bps')
   })
 })
 

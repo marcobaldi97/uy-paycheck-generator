@@ -31,6 +31,8 @@ const EMPRESA: Empresa = {
   direccion: 'Av. Italia 1234',
   rut: '211234560018',
   nroMtss: '123456',
+  afiliacionBps: '',
+  carpetaBse: '',
   grupo: '10',
   subgrupo: '01',
 }
@@ -42,8 +44,6 @@ function trabajador(numero: number, extra: Partial<TrabajadorInput> = {}): Traba
     nombre: `Trabajador ${numero}`,
     cargo: 'Administrativo',
     fechaIngreso: '2020-03-01',
-    afiliacionBps: '',
-    carpetaBse: '',
     activo: true,
     ...extra,
   }

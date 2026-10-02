@@ -116,8 +116,8 @@ Nine tables. Worker conditions and legal parameters are versioned by `vigente_de
 
 | Table | Columns | Notes |
 | --- | --- | --- |
-| `empresa` | `nombre`, `direccion`, `rut`, `nro_mtss`, `grupo`, `subgrupo` | Single row |
-| `trabajadores` | `id`, `numero`, `ci`, `nombre`, `cargo`, `fecha_ingreso`, `afiliacion_bps`, `carpeta_bse`, `activo` | Identity data |
+| `empresa` | `nombre`, `direccion`, `rut`, `nro_mtss`, `afiliacion_bps`, `carpeta_bse`, `grupo`, `subgrupo` | Single row |
+| `trabajadores` | `id`, `numero`, `ci`, `nombre`, `cargo`, `fecha_ingreso`, `activo` | Identity data |
 | `trabajador_condiciones` | `trabajador_id`, `vigente_desde`, `sueldo_nominal`, `fonasa_conyuge`, `fonasa_hijos`, `fonasa_tasa_manual` (nullable), `irpf_hijos`, `irpf_hijos_discapacidad`, `irpf_pct_atribucion` (100 or 50), `irpf_otras_deducciones` | Versioned; past rows never edited |
 | `parametros` | `vigente_desde`, `bpc`, `montepio`, `frl`, `tope_montepio` (nullable), `fonasa_umbral_bpc`, `fonasa_bajo_sin_conyuge`, `fonasa_bajo_con_conyuge`, `fonasa_alto_sin_cargas`, `fonasa_alto_hijos`, `fonasa_alto_conyuge`, `fonasa_alto_conyuge_hijos`, `irpf_incremento_umbral_bpc`, `irpf_incremento`, `irpf_deduccion_umbral_bpc`, `irpf_tasa_deduccion_baja`, `irpf_tasa_deduccion_alta`, `irpf_hijo_bpc_anual`, `irpf_hijo_disc_bpc_anual` | Versioned |
 | `irpf_franjas` | `vigente_desde`, `desde_bpc`, `hasta_bpc` (nullable), `tasa` | Versioned with parametros |

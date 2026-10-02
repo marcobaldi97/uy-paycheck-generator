@@ -22,8 +22,6 @@ export function trabajadorDePrueba(id: number, extra: Partial<Trabajador> = {}):
     nombre: `TRABAJADOR ${id}`,
     cargo: 'Administrativo',
     fechaIngreso: '2020-01-15',
-    afiliacionBps: '',
-    carpetaBse: '',
     activo: true,
     ...extra,
   }

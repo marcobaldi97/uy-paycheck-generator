@@ -11,6 +11,8 @@ const empresa: Empresa = {
   direccion: 'Av. Italia 1234',
   rut: '211234560018',
   nroMtss: '123456',
+  afiliacionBps: '',
+  carpetaBse: '',
   grupo: '10',
   subgrupo: '01',
 }
@@ -41,6 +43,8 @@ describe('EmpresaPage', () => {
     await user.type(nombre, 'Carmona SRL')
     await user.type(screen.getByLabelText(/RUT/), '211234560018')
     await user.type(screen.getByLabelText('Grupo'), '10')
+    await user.type(screen.getByLabelText('Afiliación BPS'), '1234567')
+    await user.type(screen.getByLabelText('Carpeta BSE'), '98765')
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
 
     await waitFor(() => expect(guardar).toHaveBeenCalledTimes(1))
@@ -49,6 +53,8 @@ describe('EmpresaPage', () => {
       direccion: '',
       rut: '211234560018',
       nroMtss: '',
+      afiliacionBps: '1234567',
+      carpetaBse: '98765',
       grupo: '10',
       subgrupo: '',
     })

@@ -20,6 +20,8 @@ export function empresaRepo(db: Conn = getDb()) {
         direccion: data.direccion,
         rut: data.rut,
         nroMtss: data.nroMtss,
+        afiliacionBps: data.afiliacionBps,
+        carpetaBse: data.carpetaBse,
         grupo: data.grupo,
         subgrupo: data.subgrupo,
       }

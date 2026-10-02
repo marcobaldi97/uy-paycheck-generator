@@ -9,7 +9,7 @@ import { errorMessage } from '../../api/client'
 import { PageHeader } from '../../components/PageHeader'
 import { useEmpresa, useGuardarEmpresa } from '../../api/hooks'
 
-const EMPTY: Empresa = { nombre: '', direccion: '', rut: '', nroMtss: '', grupo: '', subgrupo: '' }
+const EMPTY: Empresa = { nombre: '', direccion: '', rut: '', nroMtss: '', afiliacionBps: '', carpetaBse: '', grupo: '', subgrupo: '' }
 
 export function EmpresaPage() {
   const empresa = useEmpresa()
@@ -58,6 +58,8 @@ function EmpresaForm({ initial, nueva }: { initial: Empresa; nueva: boolean }) {
           <SimpleGrid cols={2}>
             <TextInput label="RUT" withAsterisk {...form.getInputProps('rut')} />
             <TextInput label="Nro. MTSS" {...form.getInputProps('nroMtss')} />
+            <TextInput label="Afiliación BPS" {...form.getInputProps('afiliacionBps')} />
+            <TextInput label="Carpeta BSE" {...form.getInputProps('carpetaBse')} />
             <TextInput label="Grupo" {...form.getInputProps('grupo')} />
             <TextInput label="Subgrupo" {...form.getInputProps('subgrupo')} />
           </SimpleGrid>
@@ -86,6 +88,8 @@ function EncabezadoPreview({ empresa }: { empresa: Empresa }) {
     `RUT ${dato(empresa.rut, '[RUT]')}`,
     `MTSS ${dato(empresa.nroMtss, '[N.º MTSS]')}`,
     `Grupo ${dato(empresa.grupo, '[G]')} / Subgrupo ${dato(empresa.subgrupo, '[S]')}`,
+    `BPS ${dato(empresa.afiliacionBps, '[Afiliación BPS]')}`,
+    `BSE ${dato(empresa.carpetaBse, '[Carpeta BSE]')}`,
   ]
   return (
     <Stack gap="xs" component="aside" aria-label="Vista previa del encabezado">
