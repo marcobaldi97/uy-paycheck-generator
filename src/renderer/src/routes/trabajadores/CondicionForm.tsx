@@ -1,11 +1,26 @@
 // "Nueva condición" form. Past conditions are never edited: every change is a new row
 // with its own start date, prefilled from the newest one.
 
-import { Alert, Button, Checkbox, Group, NumberInput, SegmentedControl, SimpleGrid, Stack, Text, TextInput } from '@mantine/core'
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Group,
+  Loader,
+  NumberInput,
+  SegmentedControl,
+  SimpleGrid,
+  Stack,
+  Text,
+  TextInput,
+} from '@mantine/core'
 import { schemaResolver, useForm } from '@mantine/form'
-import type { CondicionInput } from '@shared/types'
+import { formatRatePercent, parseRatePercent } from '@shared/money'
+import type { Cents, CondicionInput, IsoDate } from '@shared/types'
+import dayjs from 'dayjs'
 import { useState } from 'react'
 import { errorMessage, isApiErrorCode } from '../../api/client'
+import { useTasaFonasa } from '../../api/hooks'
 import { MoneyInput } from '../../components/MoneyInput'
 import { condicionFormSchema, formACondicionInput, type CondicionFormValues } from './forms'
 
@@ -67,6 +82,13 @@ export function CondicionForm({ initialValues, onGuardar, onCancelar }: Condicio
           placeholder="ej.: 4,5"
           {...form.getInputProps('fonasaTasaManual')}
         />
+        <TasaFonasaAplicada
+          vigenteDesde={form.values.vigenteDesde}
+          sueldoNominal={form.values.sueldoNominal}
+          fonasaConyuge={form.values.fonasaConyuge}
+          fonasaHijos={form.values.fonasaHijos}
+          fonasaTasaManual={form.values.fonasaTasaManual}
+        />
 
         <Text fw={600} size="sm">
           IRPF
@@ -109,5 +131,84 @@ export function CondicionForm({ initialValues, onGuardar, onCancelar }: Condicio
         </Group>
       </Stack>
     </form>
+  )
+}
+
+interface TasaFonasaAplicadaProps {
+  vigenteDesde: string
+  sueldoNominal: Cents | null
+  fonasaConyuge: boolean
+  fonasaHijos: boolean
+  fonasaTasaManual: string
+}
+
+/** The date the preview resolves parámetros for: the condition's start date, or today. */
+function fechaConsulta(vigenteDesde: string): IsoDate {
+  const valida = /^\d{4}-\d{2}-\d{2}$/.test(vigenteDesde) && dayjs(vigenteDesde).format('YYYY-MM-DD') === vigenteDesde
+  return valida ? vigenteDesde : dayjs().format('YYYY-MM-DD')
+}
+
+function describirCaso(bandaAlta: boolean, conyuge: boolean, hijos: boolean): string {
+  if (!bandaAlta) return conyuge ? 'hasta el umbral, con cónyuge' : 'hasta el umbral, sin cónyuge'
+  if (conyuge && hijos) return 'sobre el umbral, con cónyuge e hijos'
+  if (conyuge) return 'sobre el umbral, con cónyuge'
+  if (hijos) return 'sobre el umbral, con hijos'
+  return 'sobre el umbral, sin cónyuge ni hijos'
+}
+
+/**
+ * Live preview of the FONASA rate this condition produces. The rate comes from main
+ * (`trabajadores.tasaFonasa`); this component only formats it.
+ */
+function TasaFonasaAplicada({
+  vigenteDesde,
+  sueldoNominal,
+  fonasaConyuge,
+  fonasaHijos,
+  fonasaTasaManual,
+}: TasaFonasaAplicadaProps) {
+  const manual = fonasaTasaManual.trim() === '' ? null : parseRatePercent(fonasaTasaManual)
+  const consulta =
+    manual === null && sueldoNominal !== null
+      ? { fecha: fechaConsulta(vigenteDesde), sueldoNominal, fonasaConyuge, fonasaHijos }
+      : null
+  const query = useTasaFonasa(consulta)
+
+  let contenido
+  if (manual !== null) {
+    contenido = <Text size="sm">Tasa FONASA aplicada: {formatRatePercent(manual)} % (manual)</Text>
+  } else if (consulta === null) {
+    contenido = (
+      <Text size="sm" c="dimmed">
+        Ingrese el sueldo nominal para ver la tasa FONASA.
+      </Text>
+    )
+  } else if (query.isError) {
+    contenido = (
+      <Text size="sm" c="dimmed">
+        {errorMessage(query.error)}
+      </Text>
+    )
+  } else if (!query.data) {
+    contenido = <Loader size="xs" aria-label="Calculando tasa FONASA" />
+  } else {
+    const caso = describirCaso(query.data.bandaAlta, consulta.fonasaConyuge, consulta.fonasaHijos)
+    contenido = (
+      <>
+        <Text size="sm">
+          Tasa FONASA aplicada: {formatRatePercent(query.data.tasa)} % ({caso})
+        </Text>
+        <Text size="xs" c="dimmed">
+          Estimada con el sueldo nominal; en el recibo se usa el imponible del mes.
+        </Text>
+      </>
+    )
+  }
+
+  // Fixed minimum height so switching between states doesn't shift the fields below.
+  return (
+    <Stack gap={2} mih={40} aria-live="polite" data-testid="tasa-fonasa-aplicada">
+      {contenido}
+    </Stack>
   )
 }
