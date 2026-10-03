@@ -54,3 +54,24 @@
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   padding-top: 4px;
 }
+
+/* Collapsed: a narrow rail with centered icons. */
+.navbar[data-colapsado] {
+  .brand {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .link {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .link > :global(.mantine-NavLink-section) {
+    margin-inline: 0;
+  }
+
+  .link > :global(.mantine-NavLink-body) {
+    display: none;
+  }
+}

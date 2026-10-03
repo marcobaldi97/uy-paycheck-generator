@@ -7,6 +7,8 @@ const paths = {
   parametros: 'M4 7h10M18 7h2M4 17h2M10 17h10 M16 5a2 2 0 100 4 2 2 0 000-4z M8 15a2 2 0 100 4 2 2 0 000-4z',
   empresa: 'M4 21V5l8-2v18M12 9h8v12M4 21h16',
   respaldo: 'M12 3v12M7 10l5 5 5-5M4 20h16',
+  colapsar: 'M4 4v16M15 7l-5 5 5 5M10 12h10',
+  expandir: 'M4 4v16M15 7l5 5-5 5M8 12h12',
 } as const
 
 export type IconName = keyof typeof paths

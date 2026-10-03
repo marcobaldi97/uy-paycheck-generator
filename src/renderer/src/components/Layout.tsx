@@ -1,4 +1,5 @@
-import { AppShell, NavLink, ScrollArea, Stack } from '@mantine/core'
+import { AppShell, NavLink, ScrollArea, Stack, Tooltip } from '@mantine/core'
+import { useLocalStorage } from '@mantine/hooks'
 import { Link, Outlet, useLocation } from 'react-router'
 import { paths } from '../paths'
 import { Icon, type IconName } from './Icon'
@@ -11,53 +12,71 @@ const mainLinks: { label: string; to: string; icon: IconName }[] = [
   { label: 'Empresa', to: paths.empresa(), icon: 'empresa' },
 ]
 
+const ANCHO = 248
+const ANCHO_COLAPSADO = 76
+
 export function Layout() {
   const { pathname } = useLocation()
   const isActive = (to: string) => pathname === to || pathname.startsWith(`${to}/`)
+  // Remembered per machine; read synchronously so the menu doesn't jump on load.
+  const [colapsado, setColapsado] = useLocalStorage({
+    key: 'menu-colapsado',
+    defaultValue: false,
+    getInitialValueInEffect: false,
+  })
+
+  // Collapsed: icon only, with the name as tooltip and accessible name.
+  const enlace = (label: string, to: string, icon: IconName) => (
+    <Tooltip key={to} label={label} position="right" disabled={!colapsado} withArrow>
+      <NavLink
+        className={classes.link}
+        component={Link}
+        to={to}
+        label={colapsado ? undefined : label}
+        aria-label={label}
+        leftSection={<Icon name={icon} />}
+        active={isActive(to)}
+      />
+    </Tooltip>
+  )
 
   return (
     <AppShell
-      navbar={{ width: 248, breakpoint: 0 }}
+      navbar={{ width: colapsado ? ANCHO_COLAPSADO : ANCHO, breakpoint: 0 }}
       padding={{ base: 'lg', lg: 40 }}
       styles={{ main: { background: 'transparent' } }}
     >
-      <AppShell.Navbar p="md" className={classes.navbar}>
+      <AppShell.Navbar p="md" className={classes.navbar} data-colapsado={colapsado || undefined}>
         <AppShell.Section>
           <div className={classes.brand}>
             <div className={classes.mark} aria-hidden="true">
               R
             </div>
-            <div className={classes.brandName}>
-              Recibos
-              <br />
-              de sueldo
-            </div>
+            {!colapsado && (
+              <div className={classes.brandName}>
+                Recibos
+                <br />
+                de sueldo
+              </div>
+            )}
           </div>
         </AppShell.Section>
         <AppShell.Section grow component={ScrollArea}>
-          <Stack gap={4}>
-            {mainLinks.map((link) => (
-              <NavLink
-                key={link.to}
-                className={classes.link}
-                component={Link}
-                to={link.to}
-                label={link.label}
-                leftSection={<Icon name={link.icon} />}
-                active={isActive(link.to)}
-              />
-            ))}
-          </Stack>
+          <Stack gap={4}>{mainLinks.map((link) => enlace(link.label, link.to, link.icon))}</Stack>
         </AppShell.Section>
         <AppShell.Section className={classes.footer}>
-          <NavLink
-            className={classes.link}
-            component={Link}
-            to={paths.respaldo()}
-            label="Respaldo"
-            leftSection={<Icon name="respaldo" />}
-            active={isActive(paths.respaldo())}
-          />
+          {enlace('Respaldo', paths.respaldo(), 'respaldo')}
+          <Tooltip label="Expandir menú" position="right" disabled={!colapsado} withArrow>
+            <NavLink
+              className={classes.link}
+              component="button"
+              label={colapsado ? undefined : 'Colapsar menú'}
+              aria-label={colapsado ? 'Expandir menú' : 'Colapsar menú'}
+              aria-expanded={!colapsado}
+              leftSection={<Icon name={colapsado ? 'expandir' : 'colapsar'} />}
+              onClick={() => setColapsado((c) => !c)}
+            />
+          </Tooltip>
         </AppShell.Section>
       </AppShell.Navbar>
       <AppShell.Main>
