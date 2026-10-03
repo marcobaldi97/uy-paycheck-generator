@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { renderWithProviders } from '../test/render'
 import { Layout } from './Layout'
 
@@ -9,8 +9,6 @@ const renderLayout = () =>
     [{ path: '/', element: <Layout />, children: [{ path: 'trabajadores', element: <p>contenido</p> }] }],
     '/trabajadores',
   )
-
-afterEach(() => localStorage.clear())
 
 describe('Layout', () => {
   it('shows every section in the sidebar and marks the current one', () => {
@@ -26,7 +24,7 @@ describe('Layout', () => {
     expect(screen.getByText('contenido')).toBeInTheDocument()
   })
 
-  it('collapses the sidebar to icons and remembers it', async () => {
+  it('starts open and collapses the sidebar to icons', async () => {
     const user = userEvent.setup()
     const { unmount } = renderLayout()
 
@@ -38,7 +36,8 @@ describe('Layout', () => {
 
     unmount()
     renderLayout()
-    expect(screen.getByRole('button', { name: 'Expandir menú' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Colapsar menú' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Colapsar menú' }))
 
     await user.click(screen.getByRole('button', { name: 'Expandir menú' }))
     expect(screen.getByText('Liquidaciones')).toBeInTheDocument()

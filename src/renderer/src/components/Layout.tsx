@@ -1,5 +1,5 @@
 import { AppShell, NavLink, ScrollArea, Stack, Tooltip } from '@mantine/core'
-import { useLocalStorage } from '@mantine/hooks'
+import { useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router'
 import { paths } from '../paths'
 import { Icon, type IconName } from './Icon'
@@ -18,12 +18,8 @@ const ANCHO_COLAPSADO = 76
 export function Layout() {
   const { pathname } = useLocation()
   const isActive = (to: string) => pathname === to || pathname.startsWith(`${to}/`)
-  // Remembered per machine; read synchronously so the menu doesn't jump on load.
-  const [colapsado, setColapsado] = useLocalStorage({
-    key: 'menu-colapsado',
-    defaultValue: false,
-    getInitialValueInEffect: false,
-  })
+  // Always starts open; collapsing lasts until the app closes.
+  const [colapsado, setColapsado] = useState(false)
 
   // Collapsed: icon only, with the name as tooltip and accessible name.
   const enlace = (label: string, to: string, icon: IconName) => (
