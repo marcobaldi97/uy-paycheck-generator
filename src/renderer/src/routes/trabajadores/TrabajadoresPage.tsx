@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router'
 import { errorMessage } from '../../api/client'
 import { useTrabajadores } from '../../api/hooks'
 import { PersonAvatar } from '../../components/PersonAvatar'
+import { formatCi } from '../../components/Recibo'
 import { PageHeader } from '../../components/PageHeader'
 import { paths } from '../../paths'
 import { formatFecha } from './forms'
@@ -95,7 +96,7 @@ export function TrabajadoresPage() {
                     </Link>
                   </Group>
                 </Table.Td>
-                <Table.Td>{t.ci}</Table.Td>
+                <Table.Td>{formatCi(t.ci)}</Table.Td>
                 <Table.Td>{t.cargo}</Table.Td>
                 <Table.Td>{formatFecha(t.fechaIngreso)}</Table.Td>
                 <Table.Td>

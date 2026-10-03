@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderUi } from '../test/render'
-import { formatCantidad, formatFecha, formatPeriodo, Recibo } from './Recibo'
+import { formatCantidad, formatCi, formatFecha, formatPeriodo, Recibo } from './Recibo'
 import { reciboCarmona } from './Recibo.fixture'
 
 function ejemplares() {
@@ -75,7 +75,7 @@ describe('Recibo (Carmona 08/2024)', () => {
     expect(original.querySelector('[data-total="haberes"]')).toHaveTextContent('30.000,00')
     expect(original.querySelector('[data-total="descuentos"]')).toHaveTextContent('6.937,00')
     expect(original.querySelector('[data-total="liquido"]')).toHaveTextContent('LÍQUIDO A COBRAR: $ 23.063,00')
-    expect(original.textContent).toContain('Imponible BPS: 30.000,00')
+    expect(original.textContent).not.toContain('Imponible BPS')
   })
 
   it('prints lines in orden order', () => {
@@ -136,5 +136,13 @@ describe('formatting helpers', () => {
     expect(formatCantidad({ codigo: 'FONASA', cantidad: '0.045' })).toBe('4,5%')
     expect(formatCantidad({ codigo: 'DIAS_NO_TRABAJADOS', cantidad: '3' })).toBe('3')
     expect(formatCantidad({ codigo: 'SUELDO', cantidad: null })).toBe('')
+  })
+
+  it('formats the C.I. as X.XXX.XXX-X', () => {
+    expect(formatCi('51681437')).toBe('5.168.143-7')
+    expect(formatCi('5.168.143-7')).toBe('5.168.143-7')
+    expect(formatCi('5168143 7')).toBe('5.168.143-7')
+    expect(formatCi('1234567')).toBe('123.456-7')
+    expect(formatCi('AB123')).toBe('AB123')
   })
 })

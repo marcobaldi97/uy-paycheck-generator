@@ -84,7 +84,7 @@ export function ReciboEjemplar({ datos, ejemplar }: { datos: ReciboImpresion; ej
 
       <div className={classes.trabajador}>
         <Campo etiqueta="Nombre:" valor={trabajador.nombre} ancho />
-        <Campo etiqueta="C.I.:" valor={trabajador.ci} />
+        <Campo etiqueta="C.I.:" valor={formatCi(trabajador.ci)} />
         <Campo etiqueta="Cargo y categoría:" valor={trabajador.cargo} ancho />
         <Campo etiqueta="Fecha de ingreso:" valor={formatFecha(trabajador.fechaIngreso)} />
         <Campo etiqueta="Sueldo nominal:" valor={formatMoney(trabajador.sueldoNominal)} />
@@ -149,9 +149,6 @@ export function ReciboEjemplar({ datos, ejemplar }: { datos: ReciboImpresion; ej
         <div className={classes.pie}>
           <div className={classes.imponibles}>
             <p className={classes.linea}>
-              <Etiqueta>Imponible BPS:</Etiqueta> {formatMoney(totales.imponibleBps)}
-            </p>
-            <p className={classes.linea}>
               <Etiqueta>Imponible IRPF:</Etiqueta> {formatMoney(totales.imponibleIrpf)}
             </p>
           </div>
@@ -205,6 +202,14 @@ export function formatPeriodo(periodo: Periodo): string {
 export function formatFecha(fecha: IsoDate): string {
   const [anio, mes, dia] = fecha.split('-')
   return anio && mes && dia ? `${dia}/${mes}/${anio}` : fecha
+}
+
+/** "51681437" → "5.168.143-7" (7 digits → "123.456-7"); anything else unchanged. */
+export function formatCi(ci: string): string {
+  const digitos = ci.replace(/\D/g, '')
+  if (digitos.length !== 7 && digitos.length !== 8) return ci
+  const cuerpo = digitos.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return `${cuerpo}-${digitos.slice(-1)}`
 }
 
 /** Rates as "15%" / "0,125%"; days and other quantities as "2" / "1,5". */

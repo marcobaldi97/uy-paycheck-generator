@@ -104,7 +104,8 @@
 /* ---------------------------------------------------------------- lines */
 
 .cuerpo {
-  flex: 1;
+  /* Doesn't grow: the footer follows the totals and the spare height goes to the signature. */
+  flex: 0 1 auto;
   min-height: 0;
   overflow: hidden;
   padding-top: 2mm;
@@ -155,6 +156,12 @@
 
 /* ---------------------------------------------------------------- totals and signature */
 
+.copia > footer {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
 .pie {
   display: flex;
   justify-content: space-between;
@@ -177,6 +184,8 @@
 }
 
 .firma {
+  flex: 1;
+  min-height: 20mm;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -194,7 +203,7 @@
 }
 
 .firmaLinea {
-  width: 65mm;
+  width: 75mm;
   padding-top: 1mm;
   border-top: 0.3mm solid #000;
   text-align: center;
