@@ -76,6 +76,7 @@ describe('Recibo (Carmona 08/2024)', () => {
     expect(original.querySelector('[data-total="descuentos"]')).toHaveTextContent('6.937,50')
     expect(original.querySelector('[data-total="liquido"]')).toHaveTextContent('LÍQUIDO A COBRAR: $ 23.063,00')
     expect(original.textContent).not.toContain('Imponible BPS')
+    expect(original.textContent).toContain('Imponible IRPF: 0,00')
   })
 
   it('prints lines in orden order', () => {

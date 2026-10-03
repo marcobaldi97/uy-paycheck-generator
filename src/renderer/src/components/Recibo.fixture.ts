@@ -86,7 +86,7 @@ export const reciboCarmona: ReciboImpresion = {
   ],
   totales: {
     imponibleBps: 3_000_000,
-    imponibleIrpf: 3_000_000,
+    imponibleIrpf: 0,
     totalHaberes: 3_000_050,
     totalDescuentos: 693_750,
     liquido: 2_306_300,

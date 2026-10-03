@@ -38,7 +38,7 @@ describe('calcularRecibo', () => {
     expect(r.totalDescuentos).toBe(693_750)
     expect(linea(r, 'REDONDEO')?.tipo).toBe('haber')
     expect(r.imponibleBps).toBe(3_000_000)
-    expect(r.imponibleIrpf).toBe(3_000_000)
+    expect(r.imponibleIrpf).toBe(0) // no IRPF withheld
     expect(r.lineas.map((l) => l.codigo)).toEqual(['SUELDO', 'MONTEPIO', 'FONASA', 'FRL', 'REDONDEO'])
     expect(r.lineas.map((l) => l.orden)).toEqual([1, 2, 3, 4, 5])
     expect(linea(r, 'FONASA')).toMatchObject({ cantidad: '0.08', valorUnitario: 3_000_000, override: false })
@@ -61,6 +61,10 @@ describe('calcularRecibo', () => {
     expect(importe(r, 'FONASA')).toBe(360_000)
     expect(importe(r, 'FRL')).toBe(10_000)
     expect(importe(r, 'IRPF')).toBe(228_520)
+    // 80000 − 12000 − 3600 − 100
+    expect(r.imponibleIrpf).toBe(6_430_000)
+    const sinIrpf = calcular({ condiciones: condiciones({ sueldoNominal: 8_000_000 }), overrides: { irpfImporte: 0 } })
+    expect(sinIrpf.imponibleIrpf).toBe(0)
     expect(importe(r, 'REDONDEO')).toBe(20)
     expect(r.liquido).toBe(6_201_500)
     expect(r.totalHaberes - r.totalDescuentos).toBe(r.liquido)
@@ -107,7 +111,8 @@ describe('calcularRecibo', () => {
     const r = calcular({ condiciones: condiciones({ sueldoNominal: 7_000_000 }), diasNoTrabajados: 2 })
     const dias = linea(r, 'DIAS_NO_TRABAJADOS')
     expect(dias).toMatchObject({ tipo: 'haber', cantidad: '2', valorUnitario: 233_333, importe: -466_667 })
-    expect(r.imponibleIrpf).toBe(6_533_333)
+    expect(importe(r, 'IRPF')).toBeUndefined()
+    expect(r.imponibleIrpf).toBe(0) // no IRPF withheld
     expect(r.imponibleBps).toBe(6_533_333)
     expect(r.irpf.incrementoAplicado).toBe(false)
     expect(r.irpf.rentaIncrementada.toNumber()).toBe(65_333.33)
@@ -174,7 +179,7 @@ describe('calcularRecibo', () => {
       descripciones: { SUELDO: 'Sueldo' },
     })
     expect(r.imponibleBps).toBe(3_100_000)
-    expect(r.imponibleIrpf).toBe(3_100_000)
+    expect(r.imponibleIrpf).toBe(0) // no IRPF withheld
     expect(r.totalHaberes).toBe(3_600_000 + 75) // + redondeo
     expect(r.lineas.map((l) => l.descripcion)).toEqual([
       'Sueldo',

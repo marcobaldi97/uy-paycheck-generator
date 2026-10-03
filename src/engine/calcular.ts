@@ -69,7 +69,8 @@ type LineaSinOrden = Omit<Linea, 'orden'>
 /**
  * Computes one receipt.
  *
- * - `imponibleIrpf` is the sum of IRPF-taxed haberes before the increment.
+ * - `imponibleIrpf` is the IRPF-taxed haberes minus montepío, FONASA and FRL, and 0 when no IRPF
+ *   is withheld (as printed on the receipt; the IRPF itself is computed from the full taxed amount).
  * - Line `cantidad` holds days for días no trabajados and the applied rate (e.g. "0.15")
  *   for montepío, FONASA and FRL, whose `valorUnitario` is the base amount.
  * - IRPF and redondeo lines are omitted when their amount is 0.
@@ -124,7 +125,7 @@ export function calcularRecibo(input: CalcularReciboInput): CalcularReciboResult
 
   // 2. Imponibles
   const imponibleBps = sum(haberes.filter((h) => h.gravadoBps).map((h) => h.linea.importe))
-  const imponibleIrpf = sum(haberes.filter((h) => h.gravadoIrpf).map((h) => h.linea.importe))
+  const rentaIrpf = sum(haberes.filter((h) => h.gravadoIrpf).map((h) => h.linea.importe))
 
   // 3. Montepío and FRL
   const baseMontepio =
@@ -141,7 +142,7 @@ export function calcularRecibo(input: CalcularReciboInput): CalcularReciboResult
 
   // 5. IRPF, with the effective contribution amounts as deductions
   const irpf = calcularIrpf(
-    imponibleIrpf,
+    rentaIrpf,
     {
       montepio,
       fonasa,
@@ -155,6 +156,7 @@ export function calcularRecibo(input: CalcularReciboInput): CalcularReciboResult
     franjas,
   )
   const irpfImporte = overrides.irpfImporte ?? irpf.importe
+  const imponibleIrpf = irpfImporte > 0 ? Math.max(0, rentaIrpf - montepio - fonasa - frl) : 0
 
   const descuentos: LineaSinOrden[] = [
     auto('MONTEPIO', 'descuento', montepio, {

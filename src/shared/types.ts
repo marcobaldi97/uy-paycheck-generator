@@ -200,6 +200,7 @@ export interface LiquidacionResumen extends Liquidacion {
 
 export interface ReciboTotales {
   imponibleBps: Cents
+  /** IRPF-taxed haberes − montepío − FONASA − FRL; 0 when no IRPF is withheld. */
   imponibleIrpf: Cents
   totalHaberes: Cents
   totalDescuentos: Cents
