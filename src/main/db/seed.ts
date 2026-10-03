@@ -22,7 +22,7 @@ export const CONCEPTOS_SEED: readonly ConceptoSeed[] = [
   { codigo: 'FONASA', descripcion: 'FONASA', tipo: 'descuento', gravadoBps: false, gravadoIrpf: false, calculo: 'auto', orden: 120 },
   { codigo: 'FRL', descripcion: 'FRL', tipo: 'descuento', gravadoBps: false, gravadoIrpf: false, calculo: 'auto', orden: 130 },
   { codigo: 'IRPF', descripcion: 'IRPF', tipo: 'descuento', gravadoBps: false, gravadoIrpf: false, calculo: 'auto', orden: 140 },
-  { codigo: 'REDONDEO', descripcion: 'Redondeo', tipo: 'descuento', gravadoBps: false, gravadoIrpf: false, calculo: 'auto', orden: 190 },
+  { codigo: 'REDONDEO', descripcion: 'Redondeo', tipo: 'haber', gravadoBps: false, gravadoIrpf: false, calculo: 'auto', orden: 190 },
 ]
 
 /** 2026 values: BPS Comunicado R 5/2026, BPS Tasas Fonasa, Decreto 148/007, Decreto 11/026. */

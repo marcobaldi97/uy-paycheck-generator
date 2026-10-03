@@ -175,7 +175,7 @@ Sources: [BPS Comunicado R 5/2026](https://www.bps.gub.uy/bps/file/23860/3/2026-
    3. deducciones = montepío + FONASA + FRL + (hijos × 20 BPC/12 + disc × 40 BPC/12) × pct + otras.
    4. tasa = 14% if renta (after increment) ≤ 15 BPC, else 8%.
    5. IRPF = max(0, bruto − deducciones × tasa); line omitted when 0.
-6. Redondeo: líquido rounded up to the next whole peso (never down); redondeo = unrounded − rounded, placed in descuentos (always ≤ 0).
+6. Redondeo: líquido rounded up to the next whole peso (never down); redondeo = rounded − unrounded, placed in haberes (always ≥ 0, never taxed).
 
 ### Overrides
 
@@ -187,7 +187,7 @@ Sources: [BPS Comunicado R 5/2026](https://www.bps.gub.uy/bps/file/23860/3/2026-
 
 | # | Case | Expected |
 | --- | --- | --- |
-| 1 | 08/2024, 30000, FONASA 8%, BPC 2024 | 4500 / 2400 / 37,50; no IRPF; redondeo −0,50; líquido 23063 |
+| 1 | 08/2024, 30000, FONASA 8%, BPC 2024 | 4500 / 2400 / 37,50; no IRPF; redondeo +0,50 (haber); líquido 23063 |
 | 2 | 2026, 15000, spouse, no children | FONASA 5% |
 | 3 | 2026, 80000, no dependents | renta 84800; bruto 4483,20; deducciones 15700 × 14%; IRPF 2285,20; líquido 62015 |
 | 4 | 2026, 120000, FONASA 8%, 2 children at 100% | renta 127200; bruto 13024,80; deducciones 50630 × 8%; IRPF 8974,40; líquido 83276 |

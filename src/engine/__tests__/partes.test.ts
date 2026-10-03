@@ -48,9 +48,9 @@ describe('redondeo', () => {
     expect(redondearAPesos(2_306_200)).toBe(2_306_200)
     expect(redondearAPesos(-150)).toBe(-100)
   })
-  it('redondeo = unrounded − rounded, never positive', () => {
-    expect(calcularRedondeo(2_306_250)).toEqual({ redondeo: -50, liquido: 2_306_300 })
-    expect(calcularRedondeo(2_306_220)).toEqual({ redondeo: -80, liquido: 2_306_300 })
+  it('redondeo = rounded − unrounded, never negative', () => {
+    expect(calcularRedondeo(2_306_250)).toEqual({ redondeo: 50, liquido: 2_306_300 })
+    expect(calcularRedondeo(2_306_220)).toEqual({ redondeo: 80, liquido: 2_306_300 })
     expect(calcularRedondeo(100)).toEqual({ redondeo: 0, liquido: 100 })
   })
 })

@@ -77,7 +77,7 @@ describe('seed', () => {
     ])
     const sueldo = conceptos.find((c) => c.codigo === 'SUELDO')!
     expect(sueldo).toMatchObject({ descripcion: 'Sueldo Mensual', tipo: 'haber', gravadoBps: true, gravadoIrpf: true })
-    expect(conceptos.find((c) => c.codigo === 'REDONDEO')!.tipo).toBe('descuento')
+    expect(conceptos.find((c) => c.codigo === 'REDONDEO')!.tipo).toBe('haber')
   })
 
   it('inserts the 2026 parameters with their IRPF brackets', () => {

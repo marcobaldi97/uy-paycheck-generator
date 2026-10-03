@@ -196,7 +196,7 @@ describe('liquidacionesRepo', () => {
     { codigo: 'FONASA', descripcion: 'FONASA', cantidad: '0.05', valorUnitario: 3000000, importe: 150000, tipo: 'descuento', orden: 120, origen: 'auto', override: true },
     { codigo: 'MONTEPIO', descripcion: 'Montepío', cantidad: '0.15', valorUnitario: 3000000, importe: 450000, tipo: 'descuento', orden: 110, origen: 'auto', override: false },
     { codigo: null, descripcion: 'Adelanto', cantidad: null, valorUnitario: null, importe: 100000, tipo: 'descuento', orden: 150, origen: 'manual', override: false },
-    { codigo: 'REDONDEO', descripcion: 'Redondeo', cantidad: null, valorUnitario: null, importe: -50, tipo: 'descuento', orden: 190, origen: 'auto', override: false },
+    { codigo: 'REDONDEO', descripcion: 'Redondeo', cantidad: null, valorUnitario: null, importe: 50, tipo: 'haber', orden: 190, origen: 'auto', override: false },
   ]
   const DATA: ReciboData = { entradas: ENTRADAS, totales: TOTALES, lineas: LINEAS }
 

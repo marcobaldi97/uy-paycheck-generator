@@ -12,10 +12,10 @@ export function redondearAPesos(cents: Cents): Cents {
 }
 
 /**
- * Redondeo line amount: unrounded líquido − rounded líquido, in cents.
- * It is a descuento and never positive: it can only raise the líquido.
+ * Redondeo line amount: rounded líquido − unrounded líquido, in cents.
+ * It is a haber and never negative: it can only raise the líquido.
  */
 export function calcularRedondeo(liquidoSinRedondear: Cents): { redondeo: Cents; liquido: Cents } {
   const liquido = redondearAPesos(liquidoSinRedondear)
-  return { redondeo: liquidoSinRedondear - liquido, liquido }
+  return { redondeo: liquido - liquidoSinRedondear, liquido }
 }

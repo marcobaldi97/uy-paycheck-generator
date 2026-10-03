@@ -44,7 +44,7 @@ export interface CalcularReciboInput {
 }
 
 export interface CalcularReciboResultado extends ReciboTotales {
-  /** Ordered: haberes (auto, manual), descuentos (auto, manual), redondeo. `orden` is 1-based. */
+  /** Ordered: haberes (auto, manual), descuentos (auto, manual), redondeo (a haber). `orden` is 1-based. */
   lineas: Linea[]
   /** Values without receipt overrides, for the editor's "restaurar". */
   valoresCalculados: ValoresCalculados
@@ -180,20 +180,23 @@ export function calcularRecibo(input: CalcularReciboInput): CalcularReciboResult
     if (m.tipo === 'descuento') descuentos.push(manualLinea(m))
   }
 
-  // 6. Redondeo to whole pesos
-  const totalHaberes = sum(haberes.map((h) => h.linea.importe))
-  const descuentosSinRedondeo = sum(descuentos.map((l) => l.importe))
-  const { redondeo, liquido } = calcularRedondeo(totalHaberes - descuentosSinRedondeo)
-  if (redondeo !== 0) descuentos.push(auto('REDONDEO', 'descuento', redondeo))
+  // 6. Redondeo up to whole pesos, as a haber (never taxed)
+  const haberesSinRedondeo = sum(haberes.map((h) => h.linea.importe))
+  const totalDescuentos = sum(descuentos.map((l) => l.importe))
+  const { redondeo, liquido } = calcularRedondeo(haberesSinRedondeo - totalDescuentos)
+  const redondeoLineas = redondeo === 0 ? [] : [auto('REDONDEO', 'haber', redondeo)]
 
-  const lineas: Linea[] = [...haberes.map((h) => h.linea), ...descuentos].map((l, i) => ({ ...l, orden: i + 1 }))
+  const lineas: Linea[] = [...haberes.map((h) => h.linea), ...descuentos, ...redondeoLineas].map((l, i) => ({
+    ...l,
+    orden: i + 1,
+  }))
 
   return {
     lineas,
     imponibleBps,
     imponibleIrpf,
-    totalHaberes,
-    totalDescuentos: descuentosSinRedondeo + redondeo,
+    totalHaberes: haberesSinRedondeo + redondeo,
+    totalDescuentos,
     liquido,
     valoresCalculados: {
       montepioTasa: parametros.montepio,

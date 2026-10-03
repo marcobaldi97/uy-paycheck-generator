@@ -32,10 +32,11 @@ describe('calcularRecibo', () => {
     expect(importe(r, 'FONASA')).toBe(240_000)
     expect(importe(r, 'FRL')).toBe(3_750)
     expect(linea(r, 'IRPF')).toBeUndefined()
-    expect(importe(r, 'REDONDEO')).toBe(-50)
+    expect(importe(r, 'REDONDEO')).toBe(50)
     expect(r.liquido).toBe(2_306_300)
-    expect(r.totalHaberes).toBe(3_000_000)
-    expect(r.totalDescuentos).toBe(693_700)
+    expect(r.totalHaberes).toBe(3_000_050)
+    expect(r.totalDescuentos).toBe(693_750)
+    expect(linea(r, 'REDONDEO')?.tipo).toBe('haber')
     expect(r.imponibleBps).toBe(3_000_000)
     expect(r.imponibleIrpf).toBe(3_000_000)
     expect(r.lineas.map((l) => l.codigo)).toEqual(['SUELDO', 'MONTEPIO', 'FONASA', 'FRL', 'REDONDEO'])
@@ -60,7 +61,7 @@ describe('calcularRecibo', () => {
     expect(importe(r, 'FONASA')).toBe(360_000)
     expect(importe(r, 'FRL')).toBe(10_000)
     expect(importe(r, 'IRPF')).toBe(228_520)
-    expect(importe(r, 'REDONDEO')).toBe(-20)
+    expect(importe(r, 'REDONDEO')).toBe(20)
     expect(r.liquido).toBe(6_201_500)
     expect(r.totalHaberes - r.totalDescuentos).toBe(r.liquido)
   })
@@ -110,7 +111,7 @@ describe('calcularRecibo', () => {
     expect(r.imponibleBps).toBe(6_533_333)
     expect(r.irpf.incrementoAplicado).toBe(false)
     expect(r.irpf.rentaIncrementada.toNumber()).toBe(65_333.33)
-    expect(r.totalHaberes).toBe(6_533_333)
+    expect(r.totalHaberes).toBe(6_533_333 + importe(r, 'REDONDEO')!)
   })
 
   it('7: FONASA override changes the FONASA line and IRPF deductions', () => {
@@ -174,7 +175,7 @@ describe('calcularRecibo', () => {
     })
     expect(r.imponibleBps).toBe(3_100_000)
     expect(r.imponibleIrpf).toBe(3_100_000)
-    expect(r.totalHaberes).toBe(3_600_000)
+    expect(r.totalHaberes).toBe(3_600_000 + 75) // + redondeo
     expect(r.lineas.map((l) => l.descripcion)).toEqual([
       'Sueldo',
       'Viático',
@@ -187,7 +188,7 @@ describe('calcularRecibo', () => {
     ])
     expect(r.lineas.filter((l) => l.origen === 'manual')).toHaveLength(3)
     // 36000 − 4650 − 1395 (4,5%) − 38,75 − 3000 = 26916,25 → 26917 (always up)
-    expect(importe(r, 'REDONDEO')).toBe(-75)
+    expect(importe(r, 'REDONDEO')).toBe(75)
     expect(r.liquido).toBe(2_691_700)
     expect(r.totalHaberes - r.totalDescuentos).toBe(r.liquido)
   })

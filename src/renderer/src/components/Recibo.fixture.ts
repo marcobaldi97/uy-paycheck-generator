@@ -1,5 +1,5 @@
 // Test fixtures for the receipt template: the Carmona 08/2024 receipt (PLAN.md test case 1).
-// Sueldo 30.000; montepío 15%, FONASA 8%, FRL 0,125%; no IRPF; redondeo −0,50; líquido 23.063.
+// Sueldo 30.000; montepío 15%, FONASA 8%, FRL 0,125%; no IRPF; redondeo +0,50 (haber); líquido 23.063.
 // Worker and company identity data are fictitious.
 
 import type { ReciboImpresion } from '@shared/types'
@@ -77,8 +77,8 @@ export const reciboCarmona: ReciboImpresion = {
       descripcion: 'Redondeo',
       cantidad: null,
       valorUnitario: null,
-      importe: -50,
-      tipo: 'descuento',
+      importe: 50,
+      tipo: 'haber',
       orden: 5,
       origen: 'auto',
       override: false,
@@ -87,8 +87,8 @@ export const reciboCarmona: ReciboImpresion = {
   totales: {
     imponibleBps: 3_000_000,
     imponibleIrpf: 3_000_000,
-    totalHaberes: 3_000_000,
-    totalDescuentos: 693_700,
+    totalHaberes: 3_000_050,
+    totalDescuentos: 693_750,
     liquido: 2_306_300,
   },
 }
