@@ -1,7 +1,7 @@
 {
   "name": "recibos-de-sueldo",
   "productName": "Recibos de sueldo",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Recibos de sueldo (liquidación tipo N) para una empresa uruguaya",
   "author": "Marco",
