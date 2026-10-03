@@ -149,7 +149,8 @@ export function ReciboEjemplar({ datos, ejemplar }: { datos: ReciboImpresion; ej
         <div className={classes.pie}>
           <div className={classes.imponibles}>
             <p className={classes.linea}>
-              <Etiqueta>Imponible IRPF:</Etiqueta> {formatMoney(totales.imponibleIrpf)}
+              <Etiqueta>Imponible IRPF:</Etiqueta>{' '}
+              {totales.imponibleIrpf === 0 ? '0' : formatMoney(totales.imponibleIrpf)}
             </p>
           </div>
           <div className={classes.liquido} data-total="liquido">
