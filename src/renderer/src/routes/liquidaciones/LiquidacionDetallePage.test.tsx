@@ -322,6 +322,25 @@ describe('LiquidacionDetallePage', () => {
     expect(imprimir).toHaveBeenLastCalledWith({ liquidacionId: 2, reciboId: null, impresora: null })
   })
 
+  it("prints one worker's receipt from its row", async () => {
+    const imprimir = vi.fn().mockResolvedValue(ok(null))
+    installApi({
+      liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) },
+      pdf: { imprimir, impresoras: vi.fn().mockResolvedValue(ok([{ nombre: 'HP LaserJet', predeterminada: true }])) },
+    })
+    renderDetalle()
+
+    await screen.findAllByTestId('recibo-fila')
+    await userEvent.click(boton('Imprimir recibo de JUAN GÓMEZ'))
+    const dialog = await screen.findByRole('dialog', { name: 'Imprimir recibo' })
+    expect(dialog).toHaveTextContent('Se imprimirá el recibo de JUAN GÓMEZ')
+    await within(dialog).findByRole('combobox', { name: 'Impresora' })
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Imprimir' }))
+
+    expect(imprimir).toHaveBeenCalledWith({ liquidacionId: 2, reciboId: 11, impresora: 'HP LaserJet' })
+    expect(await screen.findByRole('status')).toHaveTextContent('Recibo enviado a HP LaserJet.')
+  })
+
   it('shows print errors', async () => {
     const imprimir = vi.fn().mockResolvedValue(err('NO_ENCONTRADO', 'Impresora no encontrada: PDF'))
     installApi({

@@ -13,17 +13,32 @@ export const DIALOGO_SISTEMA = '__dialogo_sistema__'
 export interface ImprimirModalProps {
   opened: boolean
   cantidadRecibos: number
+  /** Set when printing one worker's receipt instead of the whole liquidación. */
+  trabajadorNombre?: string
   imprimiendo: boolean
   onImprimir: (impresora: string | null) => void
   onClose: () => void
 }
 
-export function ImprimirModal({ opened, cantidadRecibos, imprimiendo, onImprimir, onClose }: ImprimirModalProps) {
+export function ImprimirModal({
+  opened,
+  cantidadRecibos,
+  trabajadorNombre,
+  imprimiendo,
+  onImprimir,
+  onClose,
+}: ImprimirModalProps) {
   return (
-    <Modal opened={opened} onClose={imprimiendo ? () => {} : onClose} title="Imprimir recibos" centered>
+    <Modal
+      opened={opened}
+      onClose={imprimiendo ? () => {} : onClose}
+      title={trabajadorNombre === undefined ? 'Imprimir recibos' : 'Imprimir recibo'}
+      centered
+    >
       {opened && (
         <ImprimirForm
           cantidadRecibos={cantidadRecibos}
+          trabajadorNombre={trabajadorNombre}
           imprimiendo={imprimiendo}
           onImprimir={onImprimir}
           onCancel={onClose}
@@ -39,6 +54,7 @@ function porDefecto(impresoras: Impresora[]): string {
 
 function ImprimirForm({
   cantidadRecibos,
+  trabajadorNombre,
   imprimiendo,
   onImprimir,
   onCancel,
@@ -59,8 +75,9 @@ function ImprimirForm({
   return (
     <Stack>
       <Text size="sm">
-        Se imprimirán {cantidadRecibos} {cantidadRecibos === 1 ? 'recibo' : 'recibos'} (original y copia en cada
-        hoja).
+        {trabajadorNombre === undefined
+          ? `Se imprimirán ${cantidadRecibos} ${cantidadRecibos === 1 ? 'recibo' : 'recibos'} (original y copia en cada hoja).`
+          : `Se imprimirá el recibo de ${trabajadorNombre} (original y copia en una hoja).`}
       </Text>
       {impresoras.isPending ? (
         <Group gap="xs">

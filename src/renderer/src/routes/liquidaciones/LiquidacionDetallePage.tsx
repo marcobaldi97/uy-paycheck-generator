@@ -16,9 +16,10 @@ import {
   Stack,
   Table,
   Text,
+  VisuallyHidden,
 } from '@mantine/core'
 import { formatMoney } from '@shared/money'
-import type { LiquidacionDetalle, ModoExportacion, ResultadoExportacion } from '@shared/types'
+import type { LiquidacionDetalle, ModoExportacion, ReciboResumen, ResultadoExportacion } from '@shared/types'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { errorMessage, isApiErrorCode, type ApiRequestError } from '../../api/client'
@@ -108,7 +109,8 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
 
   const [aviso, setAviso] = useState<Aviso | null>(null)
   const [confirmar, setConfirmar] = useState<Confirmacion>(null)
-  const [imprimirAbierto, setImprimirAbierto] = useState(false)
+  // 'todos' prints the whole liquidación; a receipt prints only that worker's.
+  const [aImprimir, setAImprimir] = useState<'todos' | ReciboResumen | null>(null)
   const [vistaPreviaAbierta, setVistaPreviaAbierta] = useState(false)
   // Controlled: an uncontrolled Menu whose target gets disabled mid-click stays "open" while
   // hidden, and the next click on Exportar PDF only closes it.
@@ -141,13 +143,13 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
     onError: fallo,
   })
   const imprimir = useImprimir({
-    onSuccess: (_, { impresora }) => {
-      setImprimirAbierto(false)
+    onSuccess: (_, { impresora, reciboId }) => {
+      setAImprimir(null)
       // With the system dialog main can't tell a print from a cancel, so say nothing.
-      if (impresora !== null) ok(`Recibos enviados a ${impresora}.`)
+      if (impresora !== null) ok(`${reciboId === null ? 'Recibos enviados' : 'Recibo enviado'} a ${impresora}.`)
     },
     onError: (error) => {
-      setImprimirAbierto(false)
+      setAImprimir(null)
       fallo(error)
     },
   })
@@ -226,7 +228,7 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
                   onClick={() => {
                     setExportarAbierto(false)
                     setAviso(null)
-                    setImprimirAbierto(true)
+                    setAImprimir('todos')
                   }}
                 >
                   Imprimir…
@@ -277,6 +279,9 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
                   <Table.Th ta="right">Haberes</Table.Th>
                   <Table.Th ta="right">Descuentos</Table.Th>
                   <Table.Th ta="right">Líquido</Table.Th>
+                  <Table.Th w={1}>
+                    <VisuallyHidden>Acciones</VisuallyHidden>
+                  </Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -304,6 +309,20 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
                     <Table.Td ta="right">{formatMoney(recibo.totalHaberes)}</Table.Td>
                     <Table.Td ta="right">{formatMoney(recibo.totalDescuentos)}</Table.Td>
                     <Table.Td ta="right">{formatMoney(recibo.liquido)}</Table.Td>
+                    <Table.Td>
+                      <Button
+                        variant="subtle"
+                        size="xs"
+                        disabled={ocupado}
+                        aria-label={`Imprimir recibo de ${recibo.trabajadorNombre}`}
+                        onClick={() => {
+                          setAviso(null)
+                          setAImprimir(recibo)
+                        }}
+                      >
+                        Imprimir
+                      </Button>
+                    </Table.Td>
                   </Table.Tr>
                 ))}
               </Table.Tbody>
@@ -313,6 +332,7 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
                   <Table.Td ta="right">{formatMoney(totales.totalHaberes)}</Table.Td>
                   <Table.Td ta="right">{formatMoney(totales.totalDescuentos)}</Table.Td>
                   <Table.Td ta="right">{formatMoney(totales.liquido)}</Table.Td>
+                  <Table.Td />
                 </Table.Tr>
               </Table.Tfoot>
             </Table>
@@ -345,11 +365,18 @@ function Detalle({ detalle, refrescar }: { detalle: LiquidacionDetalle; refresca
         onClose={() => setVistaPreviaAbierta(false)}
       />
       <ImprimirModal
-        opened={imprimirAbierto}
-        cantidadRecibos={recibos.length}
+        opened={aImprimir !== null}
+        cantidadRecibos={aImprimir === 'todos' ? recibos.length : 1}
+        trabajadorNombre={aImprimir !== null && aImprimir !== 'todos' ? aImprimir.trabajadorNombre : undefined}
         imprimiendo={imprimir.isPending}
-        onImprimir={(impresora) => imprimir.mutate({ liquidacionId: id, reciboId: null, impresora })}
-        onClose={() => setImprimirAbierto(false)}
+        onImprimir={(impresora) =>
+          imprimir.mutate({
+            liquidacionId: id,
+            reciboId: aImprimir !== null && aImprimir !== 'todos' ? aImprimir.id : null,
+            impresora,
+          })
+        }
+        onClose={() => setAImprimir(null)}
       />
     </Stack>
   )
