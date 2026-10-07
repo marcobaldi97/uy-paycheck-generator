@@ -1,5 +1,6 @@
-import { screen, waitFor } from '@testing-library/react'
-import { StrictMode } from 'react'
+import { act, screen, waitFor } from '@testing-library/react'
+import { StrictMode, useEffect } from 'react'
+import { useNavigate, type NavigateFunction } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import type { ApiResult } from '@shared/api'
 import type { ReciboImpresion } from '@shared/types'
@@ -17,13 +18,32 @@ function fuenteCon(result: ApiResult<ReciboImpresion[]>) {
   } satisfies FuenteImpresion
 }
 
+let navegar: NavigateFunction | null = null
+
+/** Exposes the router's navigate, standing in for main switching the hash. */
+function Navegador() {
+  const navigate = useNavigate()
+  useEffect(() => {
+    navegar = navigate
+  }, [navigate])
+  return null
+}
+
 function renderPrint(fuente: FuenteImpresion, path: string, strict = false) {
-  const page = <PrintPage fuente={fuente} />
+  const page = (
+    <>
+      <PrintPage fuente={fuente} />
+      <Navegador />
+    </>
+  )
   return renderWithProviders(
     [{ path: '/print/:liquidacionId/:reciboId?', element: strict ? <StrictMode>{page}</StrictMode> : page }],
     path,
   )
 }
+
+/** Give any stray extra signal a chance to happen. */
+const pausa = () => new Promise((resolve) => setTimeout(resolve, 50))
 
 describe('PrintPage', () => {
   it('renders one sheet per receipt, each with original and copy, then signals ready once', async () => {
@@ -40,9 +60,28 @@ describe('PrintPage', () => {
 
     expect(fuente.datosImpresion).toHaveBeenCalledWith({ liquidacionId: 7, reciboId: null })
     await waitFor(() => expect(fuente.listo).toHaveBeenCalledTimes(1))
-    // Give any stray second signal a chance to happen.
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    await pausa()
     expect(fuente.listo).toHaveBeenCalledTimes(1)
+  })
+
+  it('signals ready once per route when main switches to another receipt', async () => {
+    const [primero, segundo] = recibosDePrueba(2)
+    const fuente = fuenteCon({ ok: true, data: [primero!] })
+    renderPrint(fuente, paths.print(7, primero!.reciboId), true)
+
+    await waitFor(() => expect(fuente.listo).toHaveBeenCalledTimes(1))
+    expect(screen.getByTestId('recibo-hoja')).toHaveAttribute('data-recibo-id', String(primero!.reciboId))
+
+    fuente.datosImpresion.mockResolvedValue({ ok: true, data: [segundo!] })
+    act(() => void navegar!(paths.print(7, segundo!.reciboId)))
+
+    await waitFor(() =>
+      expect(screen.getByTestId('recibo-hoja')).toHaveAttribute('data-recibo-id', String(segundo!.reciboId)),
+    )
+    expect(fuente.datosImpresion).toHaveBeenLastCalledWith({ liquidacionId: 7, reciboId: segundo!.reciboId })
+    await waitFor(() => expect(fuente.listo).toHaveBeenCalledTimes(2))
+    await pausa()
+    expect(fuente.listo).toHaveBeenCalledTimes(2)
   })
 
   it('page-breaks after every sheet except the last', async () => {
@@ -70,7 +109,16 @@ describe('PrintPage', () => {
     renderPrint(fuente, paths.print(99))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Liquidación no encontrada')
-    await new Promise((resolve) => setTimeout(resolve, 50))
+    await pausa()
+    expect(fuente.listo).not.toHaveBeenCalled()
+  })
+
+  it('shows the generic message for an unexpected failure, like other screens', async () => {
+    const fuente = fuenteCon({ ok: true, data: [] })
+    fuente.datosImpresion.mockRejectedValue(new Error('bridge caído'))
+    renderPrint(fuente, paths.print(7))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ocurrió un error inesperado.')
     expect(fuente.listo).not.toHaveBeenCalled()
   })
 

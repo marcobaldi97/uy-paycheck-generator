@@ -1,6 +1,7 @@
 // Data source for the print route. Kept as an injectable interface so tests can supply
 // receipts without Electron. The default goes through the typed client (`api/client.ts`),
-// which also turns a missing bridge or a rejected IPC call into an `INTERNO` result.
+// which also turns a missing bridge or a rejected IPC call into an `INTERNO` result. The page
+// unwraps `datosImpresion` into an ApiRequestError, the same error every hook throws.
 //
 // The print route doesn't use the TanStack hooks here: it must call `listo` exactly once,
 // and tests inject this interface directly.
