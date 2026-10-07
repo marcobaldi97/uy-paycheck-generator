@@ -1,8 +1,8 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { Api, ApiResult } from '@shared/api'
 import type { TasaFonasaPreview } from '@shared/types'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { err, instalarApi, ok, quitarApi } from '../../test/fakeApi'
 import { renderUi } from '../../test/render'
 import { CondicionForm } from './CondicionForm'
 import type { CondicionFormValues } from './forms'
@@ -19,21 +19,10 @@ const INICIAL: CondicionFormValues = {
   irpfOtrasDeducciones: null,
 }
 
-/** Fake main: high band, rate picked from the flags like the seeded parámetros. */
-function instalarApi() {
-  const tasaFonasa = vi.fn(
-    async (input: { fonasaConyuge: boolean; fonasaHijos: boolean }): Promise<ApiResult<TasaFonasaPreview>> => {
-      const tasa = input.fonasaConyuge ? (input.fonasaHijos ? '0.08' : '0.065') : input.fonasaHijos ? '0.06' : '0.045'
-      return { ok: true, data: { tasa, bandaAlta: true, parametrosVigenteDesde: '2026-01-01' } }
-    },
-  )
-  window.api = { trabajadores: { tasaFonasa } } as unknown as Api
-  return tasaFonasa
-}
+/** Main's preview in the high band, with the seeded parámetros' rate for the given flags. */
+const preview = (tasa: string): TasaFonasaPreview => ({ tasa, bandaAlta: true, parametrosVigenteDesde: '2026-01-01' })
 
-afterEach(() => {
-  delete (window as { api?: Api }).api
-})
+afterEach(quitarApi)
 
 function renderForm(initialValues: CondicionFormValues = INICIAL) {
   return renderUi(<CondicionForm initialValues={initialValues} onGuardar={vi.fn()} onCancelar={vi.fn()} />)
@@ -41,7 +30,12 @@ function renderForm(initialValues: CondicionFormValues = INICIAL) {
 
 describe('CondicionForm FONASA preview', () => {
   it('asks main for the rate and refreshes it when "Cónyuge a cargo" changes', async () => {
-    const tasaFonasa = instalarApi()
+    // Hijos only, then cónyuge and hijos.
+    const { tasaFonasa } = instalarApi({
+      trabajadores: {
+        tasaFonasa: vi.fn().mockResolvedValueOnce(ok(preview('0.06'))).mockResolvedValue(ok(preview('0.08'))),
+      },
+    }).trabajadores
     renderForm()
 
     expect(await screen.findByText('Tasa FONASA aplicada: 6 % (sobre el umbral, con hijos)')).toBeInTheDocument()
@@ -65,7 +59,7 @@ describe('CondicionForm FONASA preview', () => {
   })
 
   it('shows a manual rate without calling the API', async () => {
-    const tasaFonasa = instalarApi()
+    const { tasaFonasa } = instalarApi({ trabajadores: { tasaFonasa: vi.fn() } }).trabajadores
     renderForm({ ...INICIAL, sueldoNominal: null })
 
     expect(screen.getByText('Ingrese el sueldo nominal para ver la tasa FONASA.')).toBeInTheDocument()
@@ -76,14 +70,11 @@ describe('CondicionForm FONASA preview', () => {
   })
 
   it('shows the API error dimmed', async () => {
-    window.api = {
+    instalarApi({
       trabajadores: {
-        tasaFonasa: vi.fn(async () => ({
-          ok: false,
-          error: { code: 'SIN_PARAMETROS', message: 'No hay parámetros vigentes para la fecha 01/03/2020' },
-        })),
+        tasaFonasa: vi.fn().mockResolvedValue(err('SIN_PARAMETROS', 'No hay parámetros vigentes para la fecha 01/03/2020')),
       },
-    } as unknown as Api
+    })
     renderForm({ ...INICIAL, vigenteDesde: '2020-03-01' })
 
     await waitFor(() =>

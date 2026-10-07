@@ -1,7 +1,9 @@
-// PDF export and printing. A hidden window loads the print route (`#/print/:liquidacionId[/:reciboId]`,
-// T4), which fetches `pdf.datosImpresion`, renders every receipt and calls `pdf.listo()`. Main waits
-// for that signal (with a timeout: the route never signals on a load error) and then runs
-// `printToPDF` or `print`.
+// PDF export and printing. Main builds the receipts once and registers them as a print job under
+// a hidden window, which loads the print route (`#/print/:liquidacionId[/:reciboId]`, T4). The
+// route fetches `pdf.datosImpresion` (answered from the job), renders every receipt and calls
+// `pdf.listo()`. Main waits for that signal (with a timeout: the route never signals on a load
+// error) and then runs `printToPDF` or `print`. Exporting one PDF per receipt switches the hash
+// in that same window instead of opening one window per receipt.
 
 import { execFile } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
@@ -21,7 +23,7 @@ import type { Conn } from '../db/connection'
 import { getDb } from '../db/connection'
 import { loadRenderer, secureWebPreferences } from '../lib/window'
 import { liquidacionesRepo, type ReciboRow } from '../repos/liquidaciones'
-import { constructorImpresion } from './impresion'
+import { lector } from './recibo'
 
 /** How long main waits for the print route to call `pdf.listo()`. */
 export const LISTO_TIMEOUT_MS = 30_000
@@ -30,13 +32,18 @@ export const LISTO_TIMEOUT_MS = 30_000
 
 /**
  * Receipts as printed, ordered by worker número, built with the same rules as the editor preview
- * (see ./impresion). Throws NO_ENCONTRADO, also when no empresa is saved for a borrador.
+ * (see ./recibo). Throws NO_ENCONTRADO, also when no empresa is saved for a borrador.
  */
 export function datosImpresion(
   liquidacionId: number,
   reciboId: number | null,
   db: Conn = getDb(),
 ): ReciboImpresion[] {
+  return construirImpresion(liquidacionId, reciboId, db).recibos
+}
+
+/** `datosImpresion` plus the liquidación it read, for callers that also need its dates. */
+function construirImpresion(liquidacionId: number, reciboId: number | null, db: Conn = getDb()): TrabajoImpresion {
   const liquidaciones = liquidacionesRepo(db)
   const liquidacion = liquidaciones.get(liquidacionId)
   if (!liquidacion) throw new AppError('NO_ENCONTRADO', 'Liquidación no encontrada')
@@ -52,8 +59,8 @@ export function datosImpresion(
     rows = [row]
   }
 
-  const construir = constructorImpresion(db, liquidacion, { sinEmpresa: 'error' })
-  return rows.map((row) => construir(row, liquidaciones.getLineas(row.id)))
+  const leer = lector(db, liquidacion, { sinEmpresa: 'error' })
+  return { liquidacion, recibos: rows.map((row) => leer(row, liquidaciones.getLineas(row.id)).impresion) }
 }
 
 // ---------------------------------------------------------------- file names
@@ -126,14 +133,53 @@ export function esperarListo(webContentsId: number, timeoutMs: number, abort: Ab
   })
 }
 
+// ---------------------------------------------------------------- print jobs
+
+/** Receipts already built for one print window, with the liquidación they belong to. */
+export interface TrabajoImpresion {
+  liquidacion: Liquidacion
+  recibos: ReciboImpresion[]
+}
+
+/** Print jobs by the webContents id of their hidden window. */
+const trabajos = new Map<number, TrabajoImpresion>()
+
 /**
- * Opens a hidden window at the print route, waits for `listo` and runs `trabajo` on its
- * webContents. The window is always destroyed afterwards.
+ * Answers `pdf.datosImpresion` for the sender `webContentsId`. A print window gets the receipts
+ * of its job, already built by main; any other sender (the in-app preview) gets them built now.
  */
-export async function conVentanaImpresion<T>(
+export function datosImpresionPara(
+  webContentsId: number,
   liquidacionId: number,
   reciboId: number | null,
-  trabajo: (contents: WebContents) => Promise<T>,
+): ReciboImpresion[] {
+  const trabajo = trabajos.get(webContentsId)
+  if (!trabajo) return datosImpresion(liquidacionId, reciboId)
+  if (trabajo.liquidacion.id !== liquidacionId) throw new AppError('NO_ENCONTRADO', 'Liquidación no encontrada')
+  if (reciboId === null) return trabajo.recibos
+  const recibo = trabajo.recibos.find((r) => r.reciboId === reciboId)
+  if (!recibo) throw new AppError('NO_ENCONTRADO', 'Recibo no encontrado')
+  return [recibo]
+}
+
+/** The hidden window of a print job. */
+export interface VentanaImpresion {
+  readonly contents: WebContents
+  /**
+   * Shows the print route for the whole job (`null`) or one of its receipts and waits for
+   * `listo`. The first call loads the renderer; later ones switch the hash in the same document.
+   */
+  mostrar(reciboId: number | null): Promise<void>
+}
+
+/**
+ * Opens a hidden window fed with `trabajo` and runs `usar` on it. The job is registered under
+ * the window's webContents before anything loads; afterwards it is unregistered and the window
+ * destroyed, also on failure.
+ */
+export async function conVentanaImpresion<T>(
+  trabajo: TrabajoImpresion,
+  usar: (ventana: VentanaImpresion) => Promise<T>,
   timeoutMs = LISTO_TIMEOUT_MS,
 ): Promise<T> {
   const win = new BrowserWindow({
@@ -142,42 +188,65 @@ export async function conVentanaImpresion<T>(
     height: 1200,
     webPreferences: secureWebPreferences(),
   })
+  const contents = win.webContents
+  const id = contents.id
   const abort = new AbortController()
-  win.webContents.once('render-process-gone', () => abort.abort())
+  contents.once('render-process-gone', () => abort.abort())
   win.once('closed', () => abort.abort())
+  trabajos.set(id, trabajo)
+
+  let cargada = false
+  let mostrada: string | null = null
+  const ventana: VentanaImpresion = {
+    contents,
+    async mostrar(reciboId) {
+      const ruta = rutaImpresion(trabajo.liquidacion.id, reciboId)
+      if (ruta === mostrada) return
+      // Armed before navigating so a fast `listo` is not missed.
+      const listo = esperarListo(id, timeoutMs, abort.signal)
+      // Avoid an unhandled rejection if navigating fails first.
+      listo.catch(() => undefined)
+      if (!cargada) {
+        await loadRenderer(win, ruta)
+        cargada = true
+      } else {
+        // Same `#/<ruta>` format as loadRenderer; the hash router re-renders without a reload.
+        await contents.executeJavaScript(`location.hash = ${JSON.stringify(`#/${ruta}`)}`)
+      }
+      await listo
+      mostrada = ruta
+    },
+  }
+
   try {
-    const listo = esperarListo(win.webContents.id, timeoutMs, abort.signal)
-    // Avoid an unhandled rejection if loading fails first.
-    listo.catch(() => undefined)
-    const route = reciboId === null ? `print/${liquidacionId}` : `print/${liquidacionId}/${reciboId}`
-    await loadRenderer(win, route)
-    await listo
-    return await trabajo(win.webContents)
+    return await usar(ventana)
   } finally {
+    trabajos.delete(id)
     abort.abort()
     if (!win.isDestroyed()) win.destroy()
   }
 }
 
-async function generarPdf(liquidacionId: number, reciboId: number | null): Promise<Buffer> {
-  return conVentanaImpresion(liquidacionId, reciboId, (contents) =>
-    contents.printToPDF({
-      pageSize: 'A4',
-      printBackground: true,
-      preferCSSPageSize: true,
-      margins: { top: 0, bottom: 0, left: 0, right: 0 },
-    }),
-  )
+function rutaImpresion(liquidacionId: number, reciboId: number | null): string {
+  return reciboId === null ? `print/${liquidacionId}` : `print/${liquidacionId}/${reciboId}`
+}
+
+function generarPdf(contents: WebContents): Promise<Buffer> {
+  return contents.printToPDF({
+    pageSize: 'A4',
+    printBackground: true,
+    preferCSSPageSize: true,
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+  })
 }
 
 // ---------------------------------------------------------------- exportar, imprimir, impresoras
 
-function recibosParaImprimir(liquidacionId: number): { liquidacion: Liquidacion; recibos: ReciboImpresion[] } {
-  const liquidacion = liquidacionesRepo().get(liquidacionId)
-  if (!liquidacion) throw new AppError('NO_ENCONTRADO', 'Liquidación no encontrada')
-  const recibos = datosImpresion(liquidacionId, null)
-  if (recibos.length === 0) throw new AppError('CONFLICTO', 'La liquidación no tiene recibos')
-  return { liquidacion, recibos }
+/** Builds the print job once. Throws CONFLICTO when there is nothing to print. */
+function recibosParaImprimir(liquidacionId: number, reciboId: number | null): TrabajoImpresion {
+  const trabajo = construirImpresion(liquidacionId, reciboId)
+  if (trabajo.recibos.length === 0) throw new AppError('CONFLICTO', 'La liquidación no tiene recibos')
+  return trabajo
 }
 
 /**
@@ -189,7 +258,8 @@ export async function exportar(
   modo: ModoExportacion,
   parent: BrowserWindow | null = null,
 ): Promise<ResultadoExportacion> {
-  const { liquidacion, recibos } = recibosParaImprimir(liquidacionId)
+  const trabajo = recibosParaImprimir(liquidacionId, null)
+  const { liquidacion, recibos } = trabajo
   const documentos = app.getPath('documents')
 
   if (modo === 'unico') {
@@ -201,7 +271,11 @@ export async function exportar(
     const eleccion = parent ? await dialog.showSaveDialog(parent, opciones) : await dialog.showSaveDialog(opciones)
     if (eleccion.canceled || !eleccion.filePath) return { cancelado: true, archivos: [] }
     const destino = /\.pdf$/i.test(eleccion.filePath) ? eleccion.filePath : `${eleccion.filePath}.pdf`
-    await writeFile(destino, await generarPdf(liquidacionId, null))
+    const pdf = await conVentanaImpresion(trabajo, async (ventana) => {
+      await ventana.mostrar(null)
+      return generarPdf(ventana.contents)
+    })
+    await writeFile(destino, pdf)
     return { cancelado: false, archivos: [destino] }
   }
 
@@ -216,11 +290,15 @@ export async function exportar(
 
   const nombres = nombresUnicos(recibos.map((r) => nombreArchivo(r.trabajador.nombre, liquidacion.fechaPago)))
   const archivos: string[] = []
-  for (const [i, recibo] of recibos.entries()) {
-    const destino = join(carpeta, nombres[i]!)
-    await writeFile(destino, await generarPdf(liquidacionId, recibo.reciboId))
-    archivos.push(destino)
-  }
+  // One window for every receipt: each one is a hash switch, not a new renderer.
+  await conVentanaImpresion(trabajo, async (ventana) => {
+    for (const [i, recibo] of recibos.entries()) {
+      await ventana.mostrar(recibo.reciboId)
+      const destino = join(carpeta, nombres[i]!)
+      await writeFile(destino, await generarPdf(ventana.contents))
+      archivos.push(destino)
+    }
+  })
   return { cancelado: false, archivos }
 }
 
@@ -233,10 +311,10 @@ export async function imprimir(
   reciboId: number | null,
   impresora: string | null,
 ): Promise<null> {
-  const recibos = datosImpresion(liquidacionId, reciboId)
-  if (recibos.length === 0) throw new AppError('CONFLICTO', 'La liquidación no tiene recibos')
+  const trabajo = recibosParaImprimir(liquidacionId, reciboId)
 
-  await conVentanaImpresion(liquidacionId, reciboId, async (contents) => {
+  await conVentanaImpresion(trabajo, async ({ contents, mostrar }) => {
+    await mostrar(reciboId)
     if (impresora !== null) {
       const disponibles = await contents.getPrintersAsync()
       if (!disponibles.some((p) => p.name === impresora)) {

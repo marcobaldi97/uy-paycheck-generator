@@ -47,3 +47,9 @@ export function parseRatePercent(text: string): Rate | null {
   if (!/^\d+(\.\d+)?$/.test(normalized)) return null
   return new Decimal(normalized).dividedBy(100).toString()
 }
+
+/** Like `parseRatePercent`, but also null above 100 %: a contribution or tax rate as typed by the user. */
+export function parseTasaPercent(text: string): Rate | null {
+  const rate = parseRatePercent(text)
+  return rate !== null && new Decimal(rate).lessThanOrEqualTo(1) ? rate : null
+}

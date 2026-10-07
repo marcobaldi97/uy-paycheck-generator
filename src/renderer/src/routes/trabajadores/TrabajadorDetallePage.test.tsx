@@ -1,29 +1,37 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import dayjs from 'dayjs'
-import { afterEach, describe, expect, it } from 'vitest'
+import type { Api } from '@shared/api'
+import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { paths } from '../../paths'
-import {
-  condicionDePrueba,
-  instalarApiFalsa,
-  quitarApiFalsa,
-  renderTrabajadores,
-  trabajadorDePrueba,
-} from './testing'
+import { err, instalarApi, ok, quitarApi } from '../../test/fakeApi'
+import { condicionDePrueba, renderTrabajadores, trabajadorDePrueba } from './testing'
 
-afterEach(quitarApiFalsa)
+afterEach(quitarApi)
 
 const futuro = dayjs().add(1, 'year').format('YYYY-MM-DD')
 
-function conCondiciones() {
-  return instalarApiFalsa(
-    [trabajadorDePrueba(1, { nombre: 'ANA' }), trabajadorDePrueba(2, { numero: 5, nombre: 'BEATRIZ' })],
-    [
-      condicionDePrueba(11, 1, { vigenteDesde: '2025-01-01', sueldoNominal: 3_000_000 }),
-      condicionDePrueba(12, 1, { vigenteDesde: '2025-07-01', sueldoNominal: 3_250_050, fonasaTasaManual: '0.045' }),
-      condicionDePrueba(13, 1, { vigenteDesde: futuro, sueldoNominal: 4_000_000 }),
-    ],
-  )
+const ana = trabajadorDePrueba(1, { nombre: 'ANA' })
+const beatriz = trabajadorDePrueba(2, { numero: 5, nombre: 'BEATRIZ' })
+// Newest first, as main returns them.
+const condiciones = [
+  condicionDePrueba(13, 1, { vigenteDesde: futuro, sueldoNominal: 4_000_000 }),
+  condicionDePrueba(12, 1, { vigenteDesde: '2025-07-01', sueldoNominal: 3_250_050, fonasaTasaManual: '0.045' }),
+  condicionDePrueba(11, 1, { vigenteDesde: '2025-01-01', sueldoNominal: 3_000_000 }),
+]
+
+/** ANA (with three conditions) and BEATRIZ; `metodos` adds or replaces answers. */
+function conCondiciones(metodos: Partial<Record<keyof Api['trabajadores'], Mock>> = {}) {
+  const api = {
+    listar: vi.fn().mockResolvedValue(ok([ana, beatriz])),
+    obtener: vi.fn().mockResolvedValue(ok({ trabajador: ana, condiciones })),
+    actualizar: vi.fn(),
+    crear: vi.fn(),
+    nuevaCondicion: vi.fn(),
+    // Fixed answer; the rate selection itself is tested in main.
+    tasaFonasa: vi.fn().mockResolvedValue(ok({ tasa: '0.06', bandaAlta: true, parametrosVigenteDesde: '2025-01-01' })),
+  }
+  return { api: instalarApi({ trabajadores: { ...api, ...metodos } }).trabajadores }
 }
 
 const dialogo = () => screen.findByRole('dialog', { name: 'Nueva condición' })
@@ -50,7 +58,14 @@ describe('TrabajadorDetallePage', () => {
   })
 
   it('saves identity changes', async () => {
-    const { api } = conCondiciones()
+    const actualizado = { ...ana, cargo: 'Gerente', activo: false }
+    const { api } = conCondiciones({
+      obtener: vi
+        .fn()
+        .mockResolvedValueOnce(ok({ trabajador: ana, condiciones }))
+        .mockResolvedValue(ok({ trabajador: actualizado, condiciones })),
+      actualizar: vi.fn().mockResolvedValue(ok(actualizado)),
+    })
     renderTrabajadores(paths.trabajador(1))
 
     const guardar = await screen.findByRole('button', { name: 'Guardar' })
@@ -70,7 +85,9 @@ describe('TrabajadorDetallePage', () => {
   })
 
   it('shows a duplicate worker number on the Nº field', async () => {
-    const { api } = conCondiciones()
+    const { api } = conCondiciones({
+      actualizar: vi.fn().mockResolvedValue(err('CONFLICTO', 'Ya existe un trabajador con el número 5.')),
+    })
     renderTrabajadores(paths.trabajador(1))
 
     const numero = await screen.findByLabelText(/Nº/)
@@ -94,7 +111,19 @@ describe('TrabajadorDetallePage', () => {
   })
 
   it('adds a new condition prefilled from the newest one and requires a start date', async () => {
-    const { api } = conCondiciones()
+    const nueva = condicionDePrueba(14, 1, {
+      vigenteDesde: '2026-03-01',
+      sueldoNominal: 3_500_000,
+      fonasaTasaManual: '0.06375',
+      irpfPctAtribucion: 50,
+    })
+    const { api } = conCondiciones({
+      obtener: vi
+        .fn()
+        .mockResolvedValueOnce(ok({ trabajador: ana, condiciones }))
+        .mockResolvedValue(ok({ trabajador: ana, condiciones: [condiciones[0]!, nueva, ...condiciones.slice(1)] })),
+      nuevaCondicion: vi.fn().mockResolvedValue(ok(nueva)),
+    })
     renderTrabajadores(paths.trabajador(1))
 
     await userEvent.click(await screen.findByRole('button', { name: 'Nueva condición' }))
@@ -136,7 +165,9 @@ describe('TrabajadorDetallePage', () => {
   })
 
   it('shows the conflict message when the start date already exists', async () => {
-    conCondiciones()
+    conCondiciones({
+      nuevaCondicion: vi.fn().mockResolvedValue(err('CONFLICTO', 'Ya existe una condición vigente desde esa fecha.')),
+    })
     renderTrabajadores(paths.trabajador(1))
 
     await userEvent.click(await screen.findByRole('button', { name: 'Nueva condición' }))
@@ -149,7 +180,17 @@ describe('TrabajadorDetallePage', () => {
   })
 
   it('creates a worker, then moves to its detail to add the first condition', async () => {
-    const { api } = conCondiciones()
+    const carlos = trabajadorDePrueba(100, {
+      numero: 6,
+      nombre: 'CARLOS',
+      ci: '2.222.222-2',
+      cargo: '',
+      fechaIngreso: '2026-09-01',
+    })
+    const { api } = conCondiciones({
+      crear: vi.fn().mockResolvedValue(ok(carlos)),
+      obtener: vi.fn().mockResolvedValue(ok({ trabajador: carlos, condiciones: [] })),
+    })
     renderTrabajadores(paths.trabajador('nuevo'))
 
     const numero = await screen.findByLabelText(/Nº/)
@@ -173,11 +214,18 @@ describe('TrabajadorDetallePage', () => {
   })
 
   it('suggests cargos of existing workers, active or not, when creating one', async () => {
-    const { api } = instalarApiFalsa([
-      trabajadorDePrueba(1, { cargo: 'Administrativo' }),
-      trabajadorDePrueba(2, { cargo: 'Gerente de ventas', activo: false }),
-      trabajadorDePrueba(3, { cargo: '' }),
-    ])
+    const { api } = conCondiciones({
+      listar: vi
+        .fn()
+        .mockResolvedValue(
+          ok([
+            trabajadorDePrueba(1, { cargo: 'Administrativo' }),
+            trabajadorDePrueba(2, { cargo: 'Gerente de ventas', activo: false }),
+            trabajadorDePrueba(3, { cargo: '' }),
+          ]),
+        ),
+      crear: vi.fn().mockResolvedValue(ok(trabajadorDePrueba(100, { numero: 4, nombre: 'CARLOS' }))),
+    })
     renderTrabajadores(paths.trabajador('nuevo'))
 
     const cargo = await screen.findByLabelText('Cargo')
@@ -198,7 +246,9 @@ describe('TrabajadorDetallePage', () => {
   })
 
   it('shows not found for unknown or malformed ids', async () => {
-    const { api } = conCondiciones()
+    const { api } = conCondiciones({
+      obtener: vi.fn().mockResolvedValue(err('NO_ENCONTRADO', 'Trabajador no encontrado.')),
+    })
     renderTrabajadores(paths.trabajador(99))
     expect(await screen.findByText('Trabajador no encontrado')).toBeInTheDocument()
     expect(api.obtener).toHaveBeenCalledWith({ id: 99 })

@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { renderUi } from '../test/render'
-import { formatCantidad, formatCi, formatFecha, formatPeriodo, Recibo } from './Recibo'
+import { Recibo } from './Recibo'
 import { reciboCarmona } from './Recibo.fixture'
 
 function ejemplares() {
@@ -127,23 +127,5 @@ describe('Recibo (Carmona 08/2024)', () => {
     const original = ejemplares()[0]!
     expect(fila(original, 'DIAS_NO_TRABAJADOS')).toEqual(['Días no trabajados', '2', '1.000,00', '-2.000,00', ''])
     expect(fila(original, 'MANUAL')).toEqual(['Horas extra', '1,5', '250,00', '375,00', ''])
-  })
-})
-
-describe('formatting helpers', () => {
-  it('formats periods, dates and quantities', () => {
-    expect(formatPeriodo('2026-01')).toBe('01/2026')
-    expect(formatFecha('2026-12-31')).toBe('31/12/2026')
-    expect(formatCantidad({ codigo: 'FONASA', cantidad: '0.045' })).toBe('4,5%')
-    expect(formatCantidad({ codigo: 'DIAS_NO_TRABAJADOS', cantidad: '3' })).toBe('3')
-    expect(formatCantidad({ codigo: 'SUELDO', cantidad: null })).toBe('')
-  })
-
-  it('formats the C.I. as X.XXX.XXX-X', () => {
-    expect(formatCi('51681437')).toBe('5.168.143-7')
-    expect(formatCi('5.168.143-7')).toBe('5.168.143-7')
-    expect(formatCi('5168143 7')).toBe('5.168.143-7')
-    expect(formatCi('1234567')).toBe('123.456-7')
-    expect(formatCi('AB123')).toBe('AB123')
   })
 })

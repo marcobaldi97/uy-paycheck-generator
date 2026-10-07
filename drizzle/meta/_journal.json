@@ -36,6 +36,13 @@
       "when": 1790988238140,
       "tag": "0004_redondeo_haber",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791412689580,
+      "tag": "0005_recibos_valores_calculados",
+      "breakpoints": true
     }
   ]
 }

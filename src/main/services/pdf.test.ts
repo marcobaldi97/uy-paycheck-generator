@@ -2,15 +2,16 @@ import { EventEmitter } from 'node:events'
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { AppError } from '@shared/api'
-import type { CondicionInput, Empresa, Linea, TrabajadorInput } from '@shared/types'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { AppError, type ApiResult } from '@shared/api'
+import type { CondicionInput, Empresa, Linea, ReciboImpresion, TrabajadorInput } from '@shared/types'
 import { setDb, type Db } from '../db/connection'
 import { openTestDb } from '../db/testing'
 import { empresaRepo } from '../repos/empresa'
 import { liquidacionesRepo } from '../repos/liquidaciones'
 import { trabajadoresRepo } from '../repos/trabajadores'
 import { liquidacionesService } from './liquidaciones'
+import type { TrabajoImpresion } from './pdf'
 
 // ---------------------------------------------------------------- electron fakes
 
@@ -26,11 +27,24 @@ const fake = vi.hoisted(() => ({
   ],
   saveDialog: { canceled: false, filePath: '' } as { canceled: boolean; filePath?: string },
   openDialog: { canceled: false, filePaths: [] as string[] },
-  senalar: null as ((id: number) => void) | null,
+  /** loadRenderer calls, i.e. full renderer loads. */
+  cargas: 0,
+  /** What the simulated print route got from `pdf.datosImpresion`. */
+  respuestas: [] as ApiResult<ReciboImpresion[]>[],
+  /** Reads through liquidacionesRepo, to tell whether receipts were built more than once. */
+  lecturas: { get: 0, listRecibos: 0 },
+  abrirRuta: null as ((contents: FakeContentsShape, ruta: string) => void) | null,
 }))
 
+interface FakeContentsShape extends EventEmitter {
+  id: number
+  ruta: string
+  printToPDF: Mock<() => Promise<Buffer>>
+  executeJavaScript: Mock<(codigo: string) => Promise<void>>
+}
+
 interface FakeWindowShape {
-  webContents: { id: number }
+  webContents: FakeContentsShape
   destroyed: boolean
 }
 
@@ -39,7 +53,14 @@ vi.mock('electron', async () => {
   let nextId = 100
   class FakeWebContents extends EventEmitter {
     id = nextId++
-    printToPDF = vi.fn(async () => Buffer.from(`%PDF-${this.id}`))
+    ruta = ''
+    printToPDF = vi.fn(async () => Buffer.from(`%PDF-${this.ruta}`))
+    // Only the hash switch done by the print job is expected here.
+    executeJavaScript = vi.fn(async (codigo: string) => {
+      const hash = /^location\.hash = (".*")$/.exec(codigo)?.[1]
+      if (hash === undefined) throw new Error(`Unexpected script: ${codigo}`)
+      fake.abrirRuta?.(this, (JSON.parse(hash) as string).replace(/^#\//, ''))
+    })
     getPrintersAsync = vi.fn(async () => fake.impresoras)
     print = vi.fn((opciones: unknown, cb: (ok: boolean, motivo: string) => void) => {
       fake.printOpciones.push(opciones)
@@ -77,18 +98,68 @@ vi.mock('electron', async () => {
 
 vi.mock('../lib/window', () => ({
   secureWebPreferences: () => ({ sandbox: true }),
-  // Simulates the print route: after loading it signals listo, stays silent, or crashes.
-  loadRenderer: vi.fn(async (win: { webContents: EventEmitter & { id: number } }, route: string) => {
-    fake.rutas.push(route)
-    setTimeout(() => {
-      if (fake.comportamiento === 'listo') fake.senalar?.(win.webContents.id)
-      if (fake.comportamiento === 'crash') win.webContents.emit('render-process-gone')
-    }, 5)
+  loadRenderer: vi.fn(async (win: { webContents: FakeContentsShape }, route: string) => {
+    fake.cargas++
+    fake.abrirRuta?.(win.webContents, route)
   }),
 }))
 
+vi.mock('../repos/liquidaciones', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../repos/liquidaciones')>()
+  return {
+    ...real,
+    liquidacionesRepo: (...args: Parameters<typeof real.liquidacionesRepo>) => {
+      const repo = real.liquidacionesRepo(...args)
+      return {
+        ...repo,
+        get: (id: number) => {
+          fake.lecturas.get++
+          return repo.get(id)
+        },
+        listRecibos: (liquidacionId: number) => {
+          fake.lecturas.listRecibos++
+          return repo.listRecibos(liquidacionId)
+        },
+      }
+    },
+  }
+})
+
 const pdf = await import('./pdf')
-fake.senalar = pdf.senalarListo
+
+// The real IPC handlers, captured from the mocked ipcMain.handle.
+type FakeHandler = (event: { sender: { id: number } }, input?: unknown) => Promise<ApiResult<unknown>>
+const { ipcMain } = await import('electron')
+;(await import('../ipc/pdf')).register()
+function handler(method: string): FakeHandler {
+  const registrado = vi.mocked(ipcMain.handle).mock.calls.find(([canal]) => canal === `pdf:${method}`)
+  return registrado![1] as unknown as FakeHandler
+}
+const datosHandler = handler('datosImpresion') as (
+  event: { sender: { id: number } },
+  input: { liquidacionId: number; reciboId: number | null },
+) => Promise<ApiResult<ReciboImpresion[]>>
+const listoHandler = handler('listo')
+
+// Simulates the print route at `ruta`: it fetches pdf.datosImpresion over IPC and signals listo,
+// stays silent, or crashes.
+fake.abrirRuta = (contents, ruta) => {
+  fake.rutas.push(ruta)
+  contents.ruta = ruta
+  setTimeout(() => {
+    void (async () => {
+      if (fake.comportamiento === 'crash') return void contents.emit('render-process-gone')
+      if (fake.comportamiento === 'silencio') return
+      const [, liquidacionId, reciboId] = ruta.split('/')
+      const result = await datosHandler(
+        { sender: contents },
+        { liquidacionId: Number(liquidacionId), reciboId: reciboId === undefined ? null : Number(reciboId) },
+      )
+      fake.respuestas.push(result)
+      if (result.ok) await listoHandler({ sender: contents })
+    })()
+  }, 5)
+}
 
 // ---------------------------------------------------------------- fixtures
 
@@ -163,6 +234,7 @@ function crearLiquidacion(nombres: string[], periodo = '2024-08') {
         entradas: { diasNoTrabajados: 0, lineasManuales: [], overrides: null },
         totales: TOTALES,
         lineas: [LINEA],
+        valoresCalculados: { montepioTasa: '0.15', fonasaTasa: '0.045', frlTasa: '0.00125', irpfImporte: 0 },
       })
     })
   return { liq, recibos: recibos.reverse() }
@@ -177,6 +249,15 @@ async function expectAppError(promise: Promise<unknown>, code: AppError['code'])
   expect((error as AppError).code).toBe(code)
 }
 
+/** A print job for the whole liquidación, built as exportar does. */
+function trabajoDe(liquidacionId: number): TrabajoImpresion {
+  return { liquidacion: liquidacionesRepo(db).get(liquidacionId)!, recibos: pdf.datosImpresion(liquidacionId, null, db) }
+}
+
+function empresaDe(result: ApiResult<ReciboImpresion[]>): string | undefined {
+  return result.ok ? result.data[0]?.empresa.nombre : undefined
+}
+
 beforeEach(async () => {
   db = openTestDb()
   setDb(db)
@@ -187,6 +268,9 @@ beforeEach(async () => {
   fake.printOpciones.length = 0
   fake.comportamiento = 'listo'
   fake.printResultado = { ok: true, motivo: '' }
+  fake.cargas = 0
+  fake.respuestas.length = 0
+  fake.lecturas = { get: 0, listRecibos: 0 }
 })
 
 afterEach(async () => {
@@ -208,8 +292,8 @@ describe('datosImpresion', () => {
       lineas: [LINEA],
       totales: TOTALES,
     })
-    // Condition in force on the last day of the period.
-    expect(datos[0]!.trabajador.sueldoNominal).toBe(3_000_000)
+    // The stored SUELDO line, not a condición resolved on read.
+    expect(datos[0]!.trabajador.sueldoNominal).toBe(LINEA.importe)
     expect(datos[0]!.trabajador).not.toHaveProperty('activo')
   })
 
@@ -277,25 +361,101 @@ describe('file names', () => {
 
 describe('print window', () => {
   it('waits for listo, runs the job and destroys the window', async () => {
-    const { liq } = crearLiquidacion(['Ana Pérez'])
-    const result = await pdf.conVentanaImpresion(liq.id, 7, async () => 'hecho')
+    const { liq, recibos } = crearLiquidacion(['Ana Pérez'])
+    const result = await pdf.conVentanaImpresion(trabajoDe(liq.id), async (ventana) => {
+      await ventana.mostrar(recibos[0]!.id)
+      return 'hecho'
+    })
     expect(result).toBe('hecho')
-    expect(fake.rutas).toEqual([`print/${liq.id}/7`])
+    expect(fake.rutas).toEqual([`print/${liq.id}/${recibos[0]!.id}`])
     expect(fake.ventanas).toHaveLength(1)
     expect(fake.ventanas[0]!.destroyed).toBe(true)
   })
 
+  it('answers datosImpresion from the job for its window and builds it for other senders', async () => {
+    const { liq, recibos } = crearLiquidacion(['Ana Pérez', 'Bruno Díaz'])
+    const trabajo = trabajoDe(liq.id)
+    // Changed after the job was built: only a rebuild would see it.
+    empresaRepo(db).save({ ...EMPRESA, nombre: 'Nueva SA' })
+    const todos = { liquidacionId: liq.id, reciboId: null }
+
+    await pdf.conVentanaImpresion(trabajo, async (ventana) => {
+      await ventana.mostrar(recibos[1]!.id)
+      expect(fake.respuestas).toEqual([{ ok: true, data: [trabajo.recibos[1]] }])
+
+      const propio = { sender: ventana.contents }
+      expect(await datosHandler(propio, todos)).toEqual({ ok: true, data: trabajo.recibos })
+      expect(await datosHandler(propio, { liquidacionId: liq.id, reciboId: 9999 })).toMatchObject({
+        ok: false,
+        error: { code: 'NO_ENCONTRADO', message: 'Recibo no encontrado' },
+      })
+      expect(await datosHandler(propio, { liquidacionId: liq.id + 1, reciboId: null })).toMatchObject({
+        ok: false,
+        error: { code: 'NO_ENCONTRADO' },
+      })
+      // The in-app preview (another sender) gets current data.
+      expect(empresaDe(await datosHandler({ sender: { id: 1 } }, todos))).toBe('Nueva SA')
+    })
+
+    // Unregistered afterwards: the same sender id now gets current data.
+    const id = fake.ventanas[0]!.webContents.id
+    expect(empresaDe(await datosHandler({ sender: { id } }, todos))).toBe('Nueva SA')
+  })
+
+  it('unregisters the job when the work fails', async () => {
+    const { liq } = crearLiquidacion(['Ana Pérez'])
+    const trabajo = trabajoDe(liq.id)
+    empresaRepo(db).save({ ...EMPRESA, nombre: 'Nueva SA' })
+    await expectAppError(
+      pdf.conVentanaImpresion(trabajo, async (ventana) => {
+        await ventana.mostrar(null)
+        throw new AppError('INTERNO', 'falló')
+      }),
+      'INTERNO',
+    )
+    const id = fake.ventanas[0]!.webContents.id
+    expect(fake.ventanas[0]!.destroyed).toBe(true)
+    expect(empresaDe(await datosHandler({ sender: { id } }, { liquidacionId: liq.id, reciboId: null }))).toBe('Nueva SA')
+  })
+
+  it('switches receipts in the same window and skips the route already shown', async () => {
+    const { liq, recibos } = crearLiquidacion(['Ana Pérez', 'Bruno Díaz'])
+    await pdf.conVentanaImpresion(trabajoDe(liq.id), async (ventana) => {
+      await ventana.mostrar(recibos[0]!.id)
+      await ventana.mostrar(recibos[0]!.id)
+      await ventana.mostrar(recibos[1]!.id)
+    })
+    expect(fake.ventanas).toHaveLength(1)
+    expect(fake.cargas).toBe(1)
+    expect(fake.rutas).toEqual(recibos.map((r) => `print/${liq.id}/${r.id}`))
+    expect(fake.ventanas[0]!.webContents.executeJavaScript).toHaveBeenCalledExactlyOnceWith(
+      `location.hash = "#/print/${liq.id}/${recibos[1]!.id}"`,
+    )
+  })
+
   it('times out when the route never signals and still destroys the window', async () => {
     fake.comportamiento = 'silencio'
-    const trabajo = vi.fn(async () => 'nunca')
-    await expectAppError(pdf.conVentanaImpresion(1, null, trabajo, 50), 'INTERNO')
-    expect(trabajo).not.toHaveBeenCalled()
+    const { liq } = crearLiquidacion(['Ana Pérez'])
+    const despues = vi.fn()
+    await expectAppError(
+      pdf.conVentanaImpresion(
+        trabajoDe(liq.id),
+        async (ventana) => {
+          await ventana.mostrar(null)
+          despues()
+        },
+        50,
+      ),
+      'INTERNO',
+    )
+    expect(despues).not.toHaveBeenCalled()
     expect(fake.ventanas[0]!.destroyed).toBe(true)
   })
 
   it('fails fast when the renderer crashes', async () => {
     fake.comportamiento = 'crash'
-    await expectAppError(pdf.conVentanaImpresion(1, null, async () => 'x', 10_000), 'INTERNO')
+    const { liq } = crearLiquidacion(['Ana Pérez'])
+    await expectAppError(pdf.conVentanaImpresion(trabajoDe(liq.id), (ventana) => ventana.mostrar(null), 10_000), 'INTERNO')
     expect(fake.ventanas[0]!.destroyed).toBe(true)
   })
 
@@ -311,10 +471,13 @@ describe('exportar', () => {
     const result = await pdf.exportar(liq.id, 'unico')
     expect(result).toEqual({ cancelado: false, archivos: [join(dir, 'todos.pdf')] })
     expect(fake.rutas).toEqual([`print/${liq.id}`])
-    expect((await readFile(join(dir, 'todos.pdf'), 'utf8')).startsWith('%PDF-')).toBe(true)
+    expect(await readFile(join(dir, 'todos.pdf'), 'utf8')).toBe(`%PDF-print/${liq.id}`)
+    // Built once in main; the route was answered from the job.
+    expect(fake.lecturas).toEqual({ get: 1, listRecibos: 1 })
+    expect(fake.respuestas).toEqual([{ ok: true, data: [expect.anything(), expect.anything()] }])
   })
 
-  it('por_trabajador writes one Nombre--dd-mm-yyyy.pdf per receipt', async () => {
+  it('por_trabajador writes one Nombre--dd-mm-yyyy.pdf per receipt from one window', async () => {
     const { liq, recibos } = crearLiquidacion(['Ana Pérez', 'Bruno Díaz', 'Ana Pérez'])
     fake.openDialog = { canceled: false, filePaths: [dir] }
     const result = await pdf.exportar(liq.id, 'por_trabajador')
@@ -326,7 +489,18 @@ describe('exportar', () => {
     ])
     expect(fake.rutas).toEqual(recibos.map((r) => `print/${liq.id}/${r.id}`))
     expect((await readdir(dir)).sort()).toHaveLength(3)
-    expect(fake.ventanas.every((w) => w.destroyed)).toBe(true)
+
+    // One window, one renderer load, one printToPDF per receipt, each after its route rendered.
+    expect(fake.ventanas).toHaveLength(1)
+    expect(fake.ventanas[0]!.destroyed).toBe(true)
+    expect(fake.cargas).toBe(1)
+    expect(fake.ventanas[0]!.webContents.printToPDF).toHaveBeenCalledTimes(3)
+    for (const [i, archivo] of result.archivos.entries()) {
+      expect(await readFile(archivo, 'utf8')).toBe(`%PDF-print/${liq.id}/${recibos[i]!.id}`)
+    }
+    // The receipts were built once, not once per window or per route.
+    expect(fake.lecturas).toEqual({ get: 1, listRecibos: 1 })
+    expect(fake.respuestas.every((r) => r.ok)).toBe(true)
   })
 
   it('returns cancelado when a dialog is cancelled', async () => {
@@ -350,6 +524,8 @@ describe('imprimir and impresoras', () => {
     const { liq } = crearLiquidacion(['Ana Pérez'])
     expect(await pdf.imprimir(liq.id, null, 'HP LaserJet')).toBeNull()
     expect(fake.printOpciones).toEqual([expect.objectContaining({ silent: true, deviceName: 'HP LaserJet', pageSize: 'A4' })])
+    expect(fake.lecturas).toEqual({ get: 1, listRecibos: 1 })
+    expect(fake.respuestas).toEqual([{ ok: true, data: [expect.anything()] }])
   })
 
   it('shows the system dialog when no printer is given and treats cancel as success', async () => {

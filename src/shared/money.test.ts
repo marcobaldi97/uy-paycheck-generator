@@ -5,6 +5,7 @@ import {
   fromCents,
   parseMoney,
   parseRatePercent,
+  parseTasaPercent,
   toCents,
 } from './money'
 
@@ -66,5 +67,19 @@ describe('rate percent', () => {
     expect(parseRatePercent('4,5')).toBe('0.045')
     expect(parseRatePercent('15')).toBe('0.15')
     expect(parseRatePercent('x')).toBeNull()
+  })
+})
+
+describe('parseTasaPercent', () => {
+  it('accepts 0 to 100 %', () => {
+    expect(parseTasaPercent('0')).toBe('0')
+    expect(parseTasaPercent('4,5')).toBe('0.045')
+    expect(parseTasaPercent('100')).toBe('1')
+  })
+
+  it('rejects more than 100 % and non-numbers', () => {
+    expect(parseTasaPercent('100,01')).toBeNull()
+    expect(parseTasaPercent('-1')).toBeNull()
+    expect(parseTasaPercent('')).toBeNull()
   })
 })

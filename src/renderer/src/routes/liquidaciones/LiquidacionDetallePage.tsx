@@ -33,7 +33,7 @@ import {
 } from '../../api/hooks'
 import { PersonAvatar } from '../../components/PersonAvatar'
 import { PageHeader } from '../../components/PageHeader'
-import { formatFecha } from '../../components/Recibo'
+import { formatFecha, parseId } from '../../format'
 import { StatCard } from '../../components/StatCard'
 import { paths } from '../../paths'
 import { ConfirmarModal } from './ConfirmarModal'
@@ -41,12 +41,6 @@ import { EstadoBadge } from './EstadoBadge'
 import { nombrePeriodo } from './formato'
 import { ImprimirModal } from './ImprimirModal'
 import { VistaPreviaModal } from './VistaPreviaModal'
-
-function parseId(value: string | undefined): number | null {
-  if (value === undefined || !/^\d+$/.test(value)) return null
-  const id = Number(value)
-  return Number.isSafeInteger(id) && id > 0 ? id : null
-}
 
 export function LiquidacionDetallePage() {
   const { liquidacionId } = useParams()

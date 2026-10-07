@@ -3,16 +3,14 @@
 // Pure presentation: every number comes from main in `ReciboImpresion`; nothing is computed here
 // except formatting. `Linea.override` is deliberately never rendered.
 
-import { formatMoney, formatRatePercent } from '@shared/money'
-import type { CodigoConcepto, IsoDate, Linea, Periodo, ReciboImpresion } from '@shared/types'
+import { formatMoney } from '@shared/money'
+import type { ReciboImpresion } from '@shared/types'
+import { formatCantidad, formatCi, formatFecha, formatPeriodo } from '../format'
 import classes from './Recibo.module.css'
 
 export type Ejemplar = 'ORIGINAL' | 'COPIA'
 
 const EJEMPLARES: readonly Ejemplar[] = ['ORIGINAL', 'COPIA']
-
-/** Lines whose `cantidad` is a rate (decimal string such as "0.15"), printed as a percent. */
-const CODIGOS_TASA: ReadonlySet<CodigoConcepto> = new Set(['MONTEPIO', 'FONASA', 'FRL'])
 
 /** Fixed: the app only produces liquidaciones tipo N (monthly salary). */
 const TIPO_LIQUIDACION = 'N'
@@ -189,35 +187,4 @@ function Campo({ etiqueta, valor, ancho = false }: { etiqueta: string; valor: st
       <Etiqueta>{etiqueta}</Etiqueta> {valor}
     </p>
   )
-}
-
-// ---------------------------------------------------------------- formatting (display only)
-
-/** "2024-08" → "08/2024". */
-export function formatPeriodo(periodo: Periodo): string {
-  const [anio, mes] = periodo.split('-')
-  return mes && anio ? `${mes}/${anio}` : periodo
-}
-
-/** "2024-09-01" → "01/09/2024". */
-export function formatFecha(fecha: IsoDate): string {
-  const [anio, mes, dia] = fecha.split('-')
-  return anio && mes && dia ? `${dia}/${mes}/${anio}` : fecha
-}
-
-/** "51681437" → "5.168.143-7" (7 digits → "123.456-7"); anything else unchanged. */
-export function formatCi(ci: string): string {
-  const digitos = ci.replace(/\D/g, '')
-  if (digitos.length !== 7 && digitos.length !== 8) return ci
-  const cuerpo = digitos.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return `${cuerpo}-${digitos.slice(-1)}`
-}
-
-/** Rates as "15%" / "0,125%"; days and other quantities as "2" / "1,5". */
-export function formatCantidad(linea: Pick<Linea, 'codigo' | 'cantidad'>): string {
-  if (linea.cantidad === null) return ''
-  if (linea.codigo !== null && CODIGOS_TASA.has(linea.codigo)) {
-    return `${formatRatePercent(linea.cantidad)}%`
-  }
-  return linea.cantidad.replace('.', ',')
 }

@@ -22,10 +22,10 @@ import type { ReactNode } from 'react'
 import { errorMessage, isApiErrorCode } from '../../api/client'
 import { useActualizarParametros } from '../../api/hooks'
 import { MoneyInput } from '../../components/MoneyInput'
+import { formatFecha } from '../../format'
 import { AYUDA, AYUDA_FRANJA } from './ayuda'
 import { Etiqueta } from './Etiqueta'
 import {
-  formatFecha,
   parametrosFormSchema,
   toFormValues,
   toVersion,

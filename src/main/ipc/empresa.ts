@@ -4,6 +4,7 @@ import { handle } from '../lib/ipc'
 import { empresaRepo } from '../repos/empresa'
 
 export function register(): void {
-  handle('empresa', 'obtener', () => empresaRepo().get())
-  handle('empresa', 'guardar', (input) => empresaRepo().save(input))
+  const repo = empresaRepo()
+  handle('empresa', 'obtener', () => repo.get())
+  handle('empresa', 'guardar', (input) => repo.save(input))
 }

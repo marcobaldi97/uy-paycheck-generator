@@ -4,7 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { paths } from '../../paths'
 import { renderWithProviders } from '../../test/render'
 import { LiquidacionesPage } from './index'
-import { err, installApi, ok, removeApi, resumenes } from './testApi'
+import { err, instalarApi, ok, quitarApi } from '../../test/fakeApi'
+import { resumenes } from './testApi'
 
 function renderLista() {
   return renderWithProviders(
@@ -17,11 +18,11 @@ function renderLista() {
   )
 }
 
-afterEach(removeApi)
+afterEach(quitarApi)
 
 describe('LiquidacionesPage', () => {
   it('lists periods with estado, receipt count and total líquido', async () => {
-    installApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(ok(resumenes)) } })
+    instalarApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(ok(resumenes)) } })
     renderLista()
 
     const filas = await screen.findAllByTestId('liquidacion-fila')
@@ -39,13 +40,13 @@ describe('LiquidacionesPage', () => {
   })
 
   it('shows an empty state', async () => {
-    installApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(ok([])) } })
+    instalarApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(ok([])) } })
     renderLista()
     expect(await screen.findByText(/Todavía no hay liquidaciones/)).toBeInTheDocument()
   })
 
   it('shows a load error', async () => {
-    installApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(err('INTERNO', 'Falló la base')) } })
+    instalarApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(err('INTERNO', 'Falló la base')) } })
     renderLista()
     expect(await screen.findByRole('alert')).toHaveTextContent('Falló la base')
   })
@@ -54,7 +55,7 @@ describe('LiquidacionesPage', () => {
     const crear = vi.fn().mockResolvedValue(
       ok({ id: 3, periodo: '2024-09', fechaCargo: '2024-09-30', fechaPago: '2024-09-30', estado: 'borrador' }),
     )
-    installApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(ok(resumenes)), crear } })
+    instalarApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(ok(resumenes)), crear } })
     renderLista()
 
     await userEvent.click(await screen.findByRole('button', { name: 'Nueva liquidación' }))
@@ -79,7 +80,7 @@ describe('LiquidacionesPage', () => {
         },
       ),
     )
-    installApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(ok(resumenes)), crear } })
+    instalarApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(ok(resumenes)), crear } })
     renderLista()
 
     await userEvent.click(await screen.findByRole('button', { name: 'Nueva liquidación' }))
@@ -101,7 +102,7 @@ describe('LiquidacionesPage', () => {
       .mockResolvedValue(
         err('SIN_PARAMETROS', 'No hay parámetros vigentes al 30/09/2024', { periodo: '2024-09', fecha: '2024-09-30' }),
       )
-    installApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(ok(resumenes)), crear } })
+    instalarApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(ok(resumenes)), crear } })
     renderLista()
 
     await userEvent.click(await screen.findByRole('button', { name: 'Nueva liquidación' }))
@@ -115,7 +116,7 @@ describe('LiquidacionesPage', () => {
 
   it('shows LIQUIDACION_EXISTENTE and keeps the modal open', async () => {
     const crear = vi.fn().mockResolvedValue(err('LIQUIDACION_EXISTENTE', 'Ya existe una liquidación para 09/2024'))
-    installApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(ok(resumenes)), crear } })
+    instalarApi({ liquidaciones: { listar: vi.fn().mockResolvedValue(ok(resumenes)), crear } })
     renderLista()
 
     await userEvent.click(await screen.findByRole('button', { name: 'Nueva liquidación' }))

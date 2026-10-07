@@ -1,19 +1,13 @@
-import type { Api } from '@shared/api'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { instalarApi, quitarApi } from '../test/fakeApi'
 import { ApiRequestError, call, callOrThrow, errorMessage, isApiErrorCode, toApiError } from './client'
 
-function stubApi(partial: Record<string, Record<string, unknown>>) {
-  window.api = partial as unknown as Api
-}
-
-afterEach(() => {
-  delete (window as { api?: Api }).api
-})
+afterEach(quitarApi)
 
 describe('call', () => {
   it('passes the input and returns the result unchanged', async () => {
     const listar = vi.fn().mockResolvedValue({ ok: true, data: [] })
-    stubApi({ trabajadores: { listar } })
+    instalarApi({ trabajadores: { listar } })
 
     await expect(call('trabajadores', 'listar', { soloActivos: true })).resolves.toEqual({ ok: true, data: [] })
     expect(listar).toHaveBeenCalledWith({ soloActivos: true })
@@ -21,7 +15,7 @@ describe('call', () => {
 
   it('calls void methods without arguments', async () => {
     const obtener = vi.fn().mockResolvedValue({ ok: true, data: null })
-    stubApi({ empresa: { obtener } })
+    instalarApi({ empresa: { obtener } })
 
     await call('empresa', 'obtener')
     expect(obtener).toHaveBeenCalledWith()
@@ -29,7 +23,7 @@ describe('call', () => {
 
   it('returns domain errors as typed results', async () => {
     const error = { code: 'SIN_PARAMETROS', message: 'No hay parámetros vigentes.' }
-    stubApi({ liquidaciones: { crear: vi.fn().mockResolvedValue({ ok: false, error }) } })
+    instalarApi({ liquidaciones: { crear: vi.fn().mockResolvedValue({ ok: false, error }) } })
 
     const result = await call('liquidaciones', 'crear', {
       periodo: '2026-01',
@@ -40,7 +34,7 @@ describe('call', () => {
   })
 
   it('turns a rejected IPC call into INTERNO', async () => {
-    stubApi({ empresa: { obtener: vi.fn().mockRejectedValue(new Error('boom')) } })
+    instalarApi({ empresa: { obtener: vi.fn().mockRejectedValue(new Error('boom')) } })
 
     const result = await call('empresa', 'obtener')
     expect(result.ok).toBe(false)
@@ -53,20 +47,20 @@ describe('call', () => {
   it('turns a missing bridge or malformed response into INTERNO', async () => {
     await expect(call('empresa', 'obtener')).resolves.toMatchObject({ ok: false, error: { code: 'INTERNO' } })
 
-    stubApi({ empresa: { obtener: vi.fn().mockResolvedValue('nope') } })
+    instalarApi({ empresa: { obtener: vi.fn().mockResolvedValue('nope') } })
     await expect(call('empresa', 'obtener')).resolves.toMatchObject({ ok: false, error: { code: 'INTERNO' } })
   })
 })
 
 describe('callOrThrow', () => {
   it('returns data on success', async () => {
-    stubApi({ respaldo: { info: vi.fn().mockResolvedValue({ ok: true, data: { ultimoRespaldo: null } }) } })
+    instalarApi({ respaldo: { info: vi.fn().mockResolvedValue({ ok: true, data: { ultimoRespaldo: null } }) } })
     await expect(callOrThrow('respaldo', 'info')).resolves.toEqual({ ultimoRespaldo: null })
   })
 
   it('throws ApiRequestError with code, message and details', async () => {
     const error = { code: 'TRABAJADOR_SIN_CONDICIONES', message: 'Falta condición.', details: { trabajadores: [] } }
-    stubApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue({ ok: false, error }) } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue({ ok: false, error }) } })
 
     const thrown = await callOrThrow('liquidaciones', 'obtener', { id: 1 }).catch((e: unknown) => e)
     expect(thrown).toBeInstanceOf(ApiRequestError)

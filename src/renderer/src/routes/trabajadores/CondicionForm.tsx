@@ -15,6 +15,7 @@ import {
   TextInput,
 } from '@mantine/core'
 import { schemaResolver, useForm } from '@mantine/form'
+import { casoFonasa, type CasoFonasa } from '@shared/fonasa'
 import { formatRatePercent, parseRatePercent } from '@shared/money'
 import type { Cents, CondicionInput, IsoDate } from '@shared/types'
 import dayjs from 'dayjs'
@@ -148,12 +149,13 @@ function fechaConsulta(vigenteDesde: string): IsoDate {
   return valida ? vigenteDesde : dayjs().format('YYYY-MM-DD')
 }
 
-function describirCaso(bandaAlta: boolean, conyuge: boolean, hijos: boolean): string {
-  if (!bandaAlta) return conyuge ? 'hasta el umbral, con cónyuge' : 'hasta el umbral, sin cónyuge'
-  if (conyuge && hijos) return 'sobre el umbral, con cónyuge e hijos'
-  if (conyuge) return 'sobre el umbral, con cónyuge'
-  if (hijos) return 'sobre el umbral, con hijos'
-  return 'sobre el umbral, sin cónyuge ni hijos'
+const DESCRIPCION_CASO: Record<CasoFonasa, string> = {
+  bajo_sin_conyuge: 'hasta el umbral, sin cónyuge',
+  bajo_con_conyuge: 'hasta el umbral, con cónyuge',
+  alto_sin_cargas: 'sobre el umbral, sin cónyuge ni hijos',
+  alto_conyuge: 'sobre el umbral, con cónyuge',
+  alto_hijos: 'sobre el umbral, con hijos',
+  alto_conyuge_hijos: 'sobre el umbral, con cónyuge e hijos',
 }
 
 /**
@@ -192,7 +194,7 @@ function TasaFonasaAplicada({
   } else if (!query.data) {
     contenido = <Loader size="xs" aria-label="Calculando tasa FONASA" />
   } else {
-    const caso = describirCaso(query.data.bandaAlta, consulta.fonasaConyuge, consulta.fonasaHijos)
+    const caso = DESCRIPCION_CASO[casoFonasa(query.data.bandaAlta, consulta)]
     contenido = (
       <>
         <Text size="sm">

@@ -1,41 +1,29 @@
-import type { Api, ApiResult } from '@shared/api'
 import type { ParametrosVersion } from '@shared/types'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { err, instalarApi, ok, quitarApi } from '../../test/fakeApi'
 import { renderUi } from '../../test/render'
 import { version2026 } from './fixture'
 import { ParametrosPage } from './index'
 
-const ok = <T,>(data: T): ApiResult<T> => ({ ok: true, data })
-
-/** In-memory parametros backend that behaves like main (newest first, copy on nuevaVersion). */
-function mockApi(initial: ParametrosVersion[] = [version2026]) {
-  let versions = structuredClone(initial)
-  const listar = vi.fn(async () => ok(structuredClone(versions)))
-  const nuevaVersion = vi.fn(async ({ vigenteDesde }: { vigenteDesde: string }) => {
-    if (versions.some((v) => v.vigenteDesde === vigenteDesde)) {
-      return { ok: false, error: { code: 'CONFLICTO', message: 'Ya existe una versión con esa fecha' } }
-    }
-    const copy = { ...structuredClone(versions[0]!), vigenteDesde }
-    versions = [copy, ...versions].sort((a, b) => b.vigenteDesde.localeCompare(a.vigenteDesde))
-    return ok(copy)
-  })
-  const actualizar = vi.fn(async (version: ParametrosVersion): Promise<ApiResult<ParametrosVersion>> => {
-    versions = versions.map((v) => (v.vigenteDesde === version.vigenteDesde ? version : v))
-    return ok(version)
-  })
-  window.api = { parametros: { listar, nuevaVersion, actualizar } } as unknown as Api
-  return { listar, nuevaVersion, actualizar }
+/** `listar` answers `versiones` (newest first, fresh copies); `actualizar` echoes what it gets. */
+function mockApi(versiones: ParametrosVersion[] = [version2026]) {
+  return instalarApi({
+    parametros: {
+      listar: vi.fn(async () => ok(structuredClone(versiones))),
+      nuevaVersion: vi.fn(),
+      actualizar: vi.fn(async (version: ParametrosVersion) => ok(version)),
+    },
+  }).parametros
 }
 
-afterEach(() => {
-  delete (window as { api?: Api }).api
-})
+afterEach(quitarApi)
 
 const franjasTable = () => screen.getByRole('table', { name: 'Franjas de IRPF' })
 
-describe('ParametrosPage', () => {
+// Typing into many inputs takes ~2-3 s alone and can pass 5 s when the whole suite runs in parallel.
+describe('ParametrosPage', { timeout: 15_000 }, () => {
   it('opens the latest version with its values and brackets', async () => {
     mockApi()
     renderUi(<ParametrosPage />)
@@ -132,14 +120,9 @@ describe('ParametrosPage', () => {
   it('shows the franjas validation error from main next to the brackets table', async () => {
     const user = userEvent.setup()
     const { actualizar } = mockApi()
-    actualizar.mockResolvedValueOnce({
-      ok: false,
-      error: {
-        code: 'VALIDACION',
-        message: 'Las franjas deben ser contiguas (franja 1 termina en 6)',
-        details: { campo: 'franjas' },
-      },
-    })
+    actualizar.mockResolvedValueOnce(
+      err('VALIDACION', 'Las franjas deben ser contiguas (franja 1 termina en 6)', { campo: 'franjas' }),
+    )
     renderUi(<ParametrosPage />)
 
     await user.click(await screen.findByRole('button', { name: 'Guardar' }))
@@ -153,7 +136,11 @@ describe('ParametrosPage', () => {
 
   it('creates a new version prefilled from the latest and opens it for editing', async () => {
     const user = userEvent.setup()
-    const { nuevaVersion, actualizar } = mockApi()
+    const nueva = { ...version2026, vigenteDesde: '2026-07-01' }
+    const { listar, nuevaVersion, actualizar } = mockApi()
+    // Main copies the latest version; the list refetched after creating includes it.
+    nuevaVersion.mockResolvedValue(ok(nueva))
+    listar.mockResolvedValueOnce(ok([version2026])).mockResolvedValue(ok([nueva, version2026]))
     renderUi(<ParametrosPage />)
 
     await screen.findByRole('heading', { name: 'Vigente desde 01/01/2026' })
@@ -185,10 +172,7 @@ describe('ParametrosPage', () => {
   it('shows CONFLICTO from main in the dialog', async () => {
     const user = userEvent.setup()
     const { nuevaVersion } = mockApi()
-    nuevaVersion.mockResolvedValueOnce({
-      ok: false,
-      error: { code: 'CONFLICTO', message: 'Ya existe una versión de parámetros con esa fecha' },
-    })
+    nuevaVersion.mockResolvedValue(err('CONFLICTO', 'Ya existe una versión de parámetros con esa fecha'))
     renderUi(<ParametrosPage />)
 
     await user.click(await screen.findByRole('button', { name: 'Nueva versión' }))

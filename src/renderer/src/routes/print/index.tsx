@@ -1,6 +1,8 @@
 // Print route `/print/:liquidacionId/:reciboId?`, rendered outside the app shell in a hidden
 // window by main (T7). Loads the receipts, renders one A4 sheet (original + copy) per receipt
-// with page breaks, then calls `pdf.listo()` exactly once so main can print or printToPDF.
+// with page breaks, then calls `pdf.listo()` exactly once per route so main can print or
+// printToPDF. Main may switch the hash to another receipt in the same window; the new route
+// renders afresh and signals again.
 //
 // If loading fails, an error message is rendered and `listo` is NOT called; main should apply
 // its own timeout.
@@ -8,7 +10,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { useParams } from 'react-router'
+import { errorMessage, unwrap } from '../../api/client'
+import { queryKeys } from '../../api/hooks'
 import { Recibo } from '../../components/Recibo'
+import { parseId } from '../../format'
 import { fuenteWindowApi, type FuenteImpresion } from './fuente'
 import classes from './PrintPage.module.css'
 
@@ -21,16 +26,32 @@ export function PrintPage({ fuente = fuenteWindowApi }: PrintPageProps) {
   const params = useParams()
   const liquidacionId = parseId(params.liquidacionId)
   const reciboId = params.reciboId === undefined ? null : parseId(params.reciboId)
-  const paramsValidos = liquidacionId !== null && (params.reciboId === undefined || reciboId !== null)
 
+  if (liquidacionId === null || (params.reciboId !== undefined && reciboId === null)) {
+    return <p className={classes.mensaje}>Ruta de impresión inválida.</p>
+  }
+  // Keyed by route so each route mounts afresh and its `listo` latch starts unset.
+  return (
+    <Hojas
+      key={`${liquidacionId}/${reciboId ?? ''}`}
+      liquidacionId={liquidacionId}
+      reciboId={reciboId}
+      fuente={fuente}
+    />
+  )
+}
+
+interface HojasProps {
+  liquidacionId: number
+  reciboId: number | null
+  fuente: FuenteImpresion
+}
+
+function Hojas({ liquidacionId, reciboId, fuente }: HojasProps) {
   const query = useQuery({
-    queryKey: ['pdf', 'datosImpresion', { liquidacionId, reciboId }],
-    enabled: paramsValidos,
-    queryFn: async () => {
-      const result = await fuente.datosImpresion({ liquidacionId: liquidacionId!, reciboId })
-      if (!result.ok) throw new Error(result.error.message)
-      return result.data
-    },
+    queryKey: queryKeys.pdf.datosImpresion(liquidacionId, reciboId),
+    // `unwrap` throws ApiRequestError, like every hook in api/hooks.ts.
+    queryFn: async () => unwrap(await fuente.datosImpresion({ liquidacionId, reciboId })),
     staleTime: Infinity,
     gcTime: 0,
   })
@@ -53,13 +74,10 @@ export function PrintPage({ fuente = fuenteWindowApi }: PrintPageProps) {
     }
   }, [recibos, fuente])
 
-  if (!paramsValidos) {
-    return <p className={classes.mensaje}>Ruta de impresión inválida.</p>
-  }
   if (query.isError) {
     return (
       <p className={classes.mensaje} role="alert">
-        No se pudieron cargar los recibos: {query.error.message}
+        No se pudieron cargar los recibos: {errorMessage(query.error)}
       </p>
     )
   }
@@ -77,12 +95,6 @@ export function PrintPage({ fuente = fuenteWindowApi }: PrintPageProps) {
       ))}
     </main>
   )
-}
-
-function parseId(value: string | undefined): number | null {
-  if (value === undefined || !/^\d+$/.test(value)) return null
-  const id = Number(value)
-  return Number.isSafeInteger(id) && id > 0 ? id : null
 }
 
 /**

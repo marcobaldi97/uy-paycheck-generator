@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { AppError } from '@shared/api'
-import type { CondicionInput, Empresa, Linea, ReciboEntradas, ReciboTotales, TrabajadorInput } from '@shared/types'
+import type { CondicionInput, Empresa, Linea, ReciboEntradas, ReciboTotales, TrabajadorInput, ValoresCalculados } from '@shared/types'
 import type { Db } from '../db/connection'
 import { PARAMETROS_2026 } from '../db/seed'
 import { openTestDb } from '../db/testing'
@@ -166,6 +166,18 @@ describe('parametrosRepo', () => {
     expect(db.$client.prepare('select count(*) as n from irpf_franjas').get()).toEqual({ n: 1 })
     expectAppError(() => repo.replace({ ...PARAMETROS_2026, vigenteDesde: '2030-01-01' }), 'NO_ENCONTRADO')
   })
+
+  it('sorts franjas as decimals, beyond float precision', () => {
+    const replaced = parametrosRepo(db).replace({
+      ...PARAMETROS_2026,
+      franjas: [
+        { desdeBpc: '0', hastaBpc: '7', tasa: '0' },
+        { desdeBpc: '7.00000000000000001', hastaBpc: null, tasa: '0.2' },
+        { desdeBpc: '7', hastaBpc: '7.00000000000000001', tasa: '0.1' },
+      ],
+    })
+    expect(replaced.franjas.map((f) => f.desdeBpc)).toEqual(['0', '7', '7.00000000000000001'])
+  })
 })
 
 describe('liquidacionesRepo', () => {
@@ -198,7 +210,8 @@ describe('liquidacionesRepo', () => {
     { codigo: null, descripcion: 'Adelanto', cantidad: null, valorUnitario: null, importe: 100000, tipo: 'descuento', orden: 150, origen: 'manual', override: false },
     { codigo: 'REDONDEO', descripcion: 'Redondeo', cantidad: null, valorUnitario: null, importe: 50, tipo: 'haber', orden: 190, origen: 'auto', override: false },
   ]
-  const DATA: ReciboData = { entradas: ENTRADAS, totales: TOTALES, lineas: LINEAS }
+  const VALORES: ValoresCalculados = { montepioTasa: '0.15', fonasaTasa: '0.045', frlTasa: '0.00125', irpfImporte: 0 }
+  const DATA: ReciboData = { entradas: ENTRADAS, totales: TOTALES, lineas: LINEAS, valoresCalculados: VALORES }
 
   function setup() {
     const trabajadores = trabajadoresRepo(db)
@@ -214,10 +227,8 @@ describe('liquidacionesRepo', () => {
     expect(liq).toMatchObject({ periodo: '2026-08', estado: 'borrador' })
     expect(repo.get(liq.id)).toEqual(liq)
     expect(repo.getByPeriodo('2026-08')).toEqual(liq)
-    expectAppError(
-      () => repo.create({ periodo: '2026-08', fechaCargo: '2026-08-31', fechaPago: '2026-09-05' }),
-      'LIQUIDACION_EXISTENTE',
-    )
+    // The service reports LIQUIDACION_EXISTENTE; the unique index still protects the table.
+    expect(() => repo.create({ periodo: '2026-08', fechaCargo: '2026-08-31', fechaPago: '2026-09-05' })).toThrow(/UNIQUE/)
     expect(repo.setEstado(liq.id, 'emitida').estado).toBe('emitida')
     expectAppError(() => repo.setEstado(999, 'emitida'), 'NO_ENCONTRADO')
   })
@@ -245,6 +256,7 @@ describe('liquidacionesRepo', () => {
       totales: TOTALES,
       snapshotEmpresa: null,
       snapshotTrabajador: null,
+      valoresCalculados: VALORES,
     })
     expect(repo.getRecibo(recibo.id)).toEqual(recibo)
     expect(repo.getLineas(recibo.id)).toEqual([...LINEAS].sort((a, b) => a.orden - b.orden))
@@ -259,11 +271,17 @@ describe('liquidacionesRepo', () => {
       entradas: { diasNoTrabajados: 2, lineasManuales: [], overrides: {} },
       totales: { ...TOTALES, liquido: 1 },
       lineas: [LINEAS[0]!],
+      valoresCalculados: { ...VALORES, irpfImporte: 5 },
     })
     expect(updated.entradas).toEqual({ diasNoTrabajados: 2, lineasManuales: [], overrides: null })
     expect(updated.totales.liquido).toBe(1)
+    expect(updated.valoresCalculados).toEqual({ ...VALORES, irpfImporte: 5 })
     expect(repo.getLineas(recibo.id)).toEqual([LINEAS[0]])
     expectAppError(() => repo.updateRecibo(999, DATA), 'NO_ENCONTRADO')
+
+    repo.setValoresCalculados(recibo.id, VALORES)
+    expect(repo.getRecibo(recibo.id)!.valoresCalculados).toEqual(VALORES)
+    expectAppError(() => repo.setValoresCalculados(999, VALORES), 'NO_ENCONTRADO')
   })
 
   it('summarizes recibos by worker número, using the snapshot name once emitida', () => {

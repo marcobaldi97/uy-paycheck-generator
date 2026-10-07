@@ -1,10 +1,9 @@
 // Form model for a parameter version: rates as percent text ("4,5"), BPC multiples as
 // UY decimal text ("2,5"), money as cents. Converts to and from ParametrosVersion.
 
-import { formatRatePercent, parseRatePercent } from '@shared/money'
+import { formatRatePercent, parseRatePercent, parseTasaPercent } from '@shared/money'
 import { isoDateSchema } from '@shared/schemas'
 import type { Cents, DecimalString, IsoDate, Parametros, ParametrosVersion, Rate } from '@shared/types'
-import dayjs from 'dayjs'
 import { z } from 'zod'
 
 /** Scalar fields edited as a percent. */
@@ -49,9 +48,6 @@ export type ParametrosFormValues = { [K in RateField | BpcField]: string } & {
 
 // ---------------------------------------------------------------- text helpers
 
-/** "2026-01-01" → "01/01/2026". */
-export const formatFecha = (date: IsoDate) => dayjs(date).format('DD/MM/YYYY')
-
 /** Parses "DD/MM/YYYY" (as typed) into "YYYY-MM-DD"; null if it isn't a real date. */
 export function parseFechaUy(text: string): IsoDate | null {
   const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text.trim())
@@ -77,14 +73,9 @@ export function formatDecimalText(value: DecimalString): string {
   return value.replace('.', ',')
 }
 
-const isPercent = (text: string) => {
-  const rate = parseRatePercent(text)
-  return rate !== null && Number(rate) <= 1
-}
-
 // ---------------------------------------------------------------- schema
 
-const percentText = z.string().refine(isPercent, 'Porcentaje inválido (0 a 100)')
+const percentText = z.string().refine((t) => parseTasaPercent(t) !== null, 'Porcentaje inválido (0 a 100)')
 const bpcText = z.string().refine((t) => parseDecimalText(t) !== null, 'Número inválido')
 const optionalBpcText = z.string().refine((t) => t.trim() === '' || parseDecimalText(t) !== null, 'Número inválido')
 
