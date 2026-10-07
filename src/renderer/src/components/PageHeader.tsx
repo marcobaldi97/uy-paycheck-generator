@@ -26,7 +26,13 @@ export function PageHeader({ title, eyebrow, badge, subtitle, actions }: PageHea
           <Title order={1} fz={40} lh={1.1} style={{ letterSpacing: '-0.01em' }}>
             {title}
           </Title>
-          {badge}
+          {/* Mantine's Badge clips its label (overflow: hidden), so in this nowrap row it would
+              shrink to an ellipsis when the title wraps. Keep it at its natural width. */}
+          {badge && (
+            <Box style={{ flexShrink: 0 }}>
+              {badge}
+            </Box>
+          )}
         </Group>
         {subtitle && (
           <Text c="dimmed" mt={8}>
@@ -34,7 +40,11 @@ export function PageHeader({ title, eyebrow, badge, subtitle, actions }: PageHea
           </Text>
         )}
       </Box>
-      {actions && <Group gap="xs">{actions}</Group>}
+      {actions && (
+        <Group gap="xs" justify="flex-end">
+          {actions}
+        </Group>
+      )}
     </Group>
   )
 }
