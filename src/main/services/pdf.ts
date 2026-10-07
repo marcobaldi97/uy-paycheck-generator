@@ -21,7 +21,7 @@ import type { Conn } from '../db/connection'
 import { getDb } from '../db/connection'
 import { loadRenderer, secureWebPreferences } from '../lib/window'
 import { liquidacionesRepo, type ReciboRow } from '../repos/liquidaciones'
-import { constructorImpresion } from './impresion'
+import { lector } from './recibo'
 
 /** How long main waits for the print route to call `pdf.listo()`. */
 export const LISTO_TIMEOUT_MS = 30_000
@@ -30,7 +30,7 @@ export const LISTO_TIMEOUT_MS = 30_000
 
 /**
  * Receipts as printed, ordered by worker número, built with the same rules as the editor preview
- * (see ./impresion). Throws NO_ENCONTRADO, also when no empresa is saved for a borrador.
+ * (see ./recibo). Throws NO_ENCONTRADO, also when no empresa is saved for a borrador.
  */
 export function datosImpresion(
   liquidacionId: number,
@@ -52,8 +52,8 @@ export function datosImpresion(
     rows = [row]
   }
 
-  const construir = constructorImpresion(db, liquidacion, { sinEmpresa: 'error' })
-  return rows.map((row) => construir(row, liquidaciones.getLineas(row.id)))
+  const leer = lector(db, liquidacion, { sinEmpresa: 'error' })
+  return rows.map((row) => leer(row, liquidaciones.getLineas(row.id)).impresion)
 }
 
 // ---------------------------------------------------------------- file names

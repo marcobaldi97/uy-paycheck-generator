@@ -1,14 +1,17 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { eq } from 'drizzle-orm'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '@shared/api'
-import type { CondicionInput, Empresa, NuevaLiquidacionInput, ReciboEntradas, TrabajadorInput } from '@shared/types'
+import { fechaResolucion } from '@shared/periodo'
+import type { CondicionInput, Empresa, NuevaLiquidacionInput, ReciboDetalle, ReciboEntradas, TrabajadorInput } from '@shared/types'
 import type { Db } from '../db/connection'
+import { recibos } from '../db/schema'
 import { PARAMETROS_2026 } from '../db/seed'
 import { openTestDb } from '../db/testing'
 import { empresaRepo } from '../repos/empresa'
 import { liquidacionesRepo } from '../repos/liquidaciones'
 import { parametrosRepo } from '../repos/parametros'
 import { trabajadoresRepo } from '../repos/trabajadores'
-import { fechaResolucion, liquidacionesService, type LiquidacionesService } from './liquidaciones'
+import { liquidacionesService, type LiquidacionesService } from './liquidaciones'
 
 let db: Db
 let service: LiquidacionesService
@@ -275,7 +278,7 @@ describe('emitir and reabrir', () => {
 })
 
 describe('obtenerRecibo impresion (borrador)', () => {
-  it('uses current empresa and worker, sueldo from the condición vigente at period end', () => {
+  it('uses current empresa and worker, sueldo from the recibo as calculated', () => {
     const t = alta(1, 3000000)
     const liq = service.crear(MARZO)
     const id = service.obtener(liq.id).recibos[0]!.id
@@ -288,10 +291,87 @@ describe('obtenerRecibo impresion (borrador)', () => {
       liquidacion: { periodo: '2026-03', fechaCargo: '2026-03-31', fechaPago: '2026-04-05' },
     })
 
+    // A new condición shows only after Recalcular, like the lines; identity data is current.
     empresaRepo(db).save(EMPRESA)
     trabajadoresRepo(db).addCondicion(t.id, condicion('2026-03-20', 3500000))
+    trabajadoresRepo(db).update(t.id, trabajador(1, { cargo: 'Gerente' }))
     const r = service.obtenerRecibo(id)
     expect(r.impresion.empresa).toEqual(EMPRESA)
-    expect(r.impresion.trabajador.sueldoNominal).toBe(3500000)
+    expect(r.impresion.trabajador).toMatchObject({ cargo: 'Gerente', sueldoNominal: 3000000 })
+
+    service.recalcular(liq.id)
+    expect(service.obtenerRecibo(id).impresion.trabajador.sueldoNominal).toBe(3500000)
+  })
+})
+
+describe('a recibo shows what it was calculated with', () => {
+  const sueldoLinea = (r: ReciboDetalle) => r.lineas.find((l) => l.codigo === 'SUELDO')!.importe
+
+  it('prints the SUELDO line as sueldo nominal, in borrador and emitida', () => {
+    empresaRepo(db).save(EMPRESA)
+    const t = alta(1, 3000000)
+    const liq = service.crear(MARZO)
+    const id = service.obtener(liq.id).recibos[0]!.id
+    service.actualizarRecibo(id, { diasNoTrabajados: 2, lineasManuales: [], overrides: null })
+    trabajadoresRepo(db).addCondicion(t.id, condicion('2026-03-01', 4200000))
+
+    const borrador = service.obtenerRecibo(id)
+    expect(borrador.impresion.trabajador.sueldoNominal).toBe(sueldoLinea(borrador))
+    expect(sueldoLinea(borrador)).toBe(3000000)
+
+    service.emitir(liq.id)
+    const emitida = service.obtenerRecibo(id)
+    expect(emitida.impresion.trabajador.sueldoNominal).toBe(sueldoLinea(emitida))
+    expect(emitida.impresion).toEqual(borrador.impresion)
+  })
+
+  it('an emitida ignores condiciones added afterwards', () => {
+    empresaRepo(db).save(EMPRESA)
+    const t = alta(1, 3000000)
+    const liq = service.crear(MARZO)
+    const id = service.obtener(liq.id).recibos[0]!.id
+    service.emitir(liq.id)
+    const before = service.obtenerRecibo(id)
+    expect(before.valoresCalculados.fonasaTasa).toBe('0.045')
+
+    trabajadoresRepo(db).addCondicion(t.id, condicion('2026-03-01', 1500000, { fonasaConyuge: true }))
+    const after = service.obtenerRecibo(id)
+    expect(after.valoresCalculados).toEqual(before.valoresCalculados)
+    expect(after.impresion).toEqual(before.impresion)
+  })
+
+  it('falls back to re-resolving for rows stored before valores_calculados existed', () => {
+    empresaRepo(db).save(EMPRESA)
+    const t = alta(1, 3000000)
+    const liq = service.crear(MARZO)
+    const id = service.obtener(liq.id).recibos[0]!.id
+    const calculados = service.obtenerRecibo(id).valoresCalculados
+    db.update(recibos).set({ valoresCalculados: null }).where(eq(recibos.id, id)).run()
+    expect(liquidacionesRepo(db).getRecibo(id)!.valoresCalculados).toBeNull()
+
+    expect(service.obtenerRecibo(id).valoresCalculados).toEqual(calculados)
+
+    // Emitir freezes them, so later condiciones don't reach the emitida.
+    service.emitir(liq.id)
+    expect(liquidacionesRepo(db).getRecibo(id)!.valoresCalculados).toEqual(calculados)
+    trabajadoresRepo(db).addCondicion(t.id, condicion('2026-03-01', 1500000, { fonasaConyuge: true }))
+    expect(service.obtenerRecibo(id).valoresCalculados).toEqual(calculados)
+  })
+
+  it('reads conceptos once per operation, not once per worker', () => {
+    alta(1, 3000000)
+    alta(2, 4000000)
+    alta(3, 5000000)
+    const prepare = vi.spyOn(db.$client, 'prepare')
+    const consultasConceptos = () => prepare.mock.calls.filter(([sql]) => /from "conceptos"/.test(sql)).length
+
+    const liq = service.crear(MARZO)
+    // One for the printed descriptions, one for the concepto ids of the stored lines.
+    expect(consultasConceptos()).toBe(2)
+
+    prepare.mockClear()
+    service.recalcular(liq.id)
+    expect(consultasConceptos()).toBe(2)
+    prepare.mockRestore()
   })
 })

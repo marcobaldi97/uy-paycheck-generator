@@ -60,6 +60,12 @@ describe('migrations', () => {
     const columnas = client.prepare('pragma table_info(trabajadores)').all() as { name: string }[]
     expect(columnas.map((c) => c.name)).not.toContain('afiliacion_bps')
   })
+
+  it('0005 adds a nullable valores_calculados to recibos', () => {
+    const db = openTestDb()
+    const columnas = db.$client.prepare('pragma table_info(recibos)').all() as { name: string; notnull: number }[]
+    expect(columnas.find((c) => c.name === 'valores_calculados')).toMatchObject({ notnull: 0 })
+  })
 })
 
 describe('seed', () => {

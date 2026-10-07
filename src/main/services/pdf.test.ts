@@ -163,6 +163,7 @@ function crearLiquidacion(nombres: string[], periodo = '2024-08') {
         entradas: { diasNoTrabajados: 0, lineasManuales: [], overrides: null },
         totales: TOTALES,
         lineas: [LINEA],
+        valoresCalculados: { montepioTasa: '0.15', fonasaTasa: '0.045', frlTasa: '0.00125', irpfImporte: 0 },
       })
     })
   return { liq, recibos: recibos.reverse() }
@@ -208,8 +209,8 @@ describe('datosImpresion', () => {
       lineas: [LINEA],
       totales: TOTALES,
     })
-    // Condition in force on the last day of the period.
-    expect(datos[0]!.trabajador.sueldoNominal).toBe(3_000_000)
+    // The stored SUELDO line, not a condición resolved on read.
+    expect(datos[0]!.trabajador.sueldoNominal).toBe(LINEA.importe)
     expect(datos[0]!.trabajador).not.toHaveProperty('activo')
   })
 
