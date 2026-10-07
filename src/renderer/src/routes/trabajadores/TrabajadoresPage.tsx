@@ -6,10 +6,9 @@ import { Link, useNavigate } from 'react-router'
 import { errorMessage } from '../../api/client'
 import { useTrabajadores } from '../../api/hooks'
 import { PersonAvatar } from '../../components/PersonAvatar'
-import { formatCi } from '../../components/Recibo'
 import { PageHeader } from '../../components/PageHeader'
+import { formatCi, formatFecha } from '../../format'
 import { paths } from '../../paths'
-import { formatFecha } from './forms'
 
 export function TrabajadoresPage() {
   const [soloActivos, setSoloActivos] = useState(true)

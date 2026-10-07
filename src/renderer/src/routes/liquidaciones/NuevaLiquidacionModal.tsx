@@ -4,13 +4,14 @@
 
 import { Alert, Anchor, Button, Group, List, Modal, Stack, Text } from '@mantine/core'
 import { DatePickerInput, MonthPickerInput } from '@mantine/dates'
+import { fechaResolucion } from '@shared/periodo'
 import type { IsoDate, Periodo } from '@shared/types'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { errorMessage, isApiErrorCode, type ApiRequestError } from '../../api/client'
 import { useCrearLiquidacion } from '../../api/hooks'
 import { paths } from '../../paths'
-import { nombrePeriodo, ultimoDiaDelPeriodo } from './formato'
+import { nombrePeriodo } from './formato'
 
 export interface NuevaLiquidacionModalProps {
   opened: boolean
@@ -31,8 +32,8 @@ export function NuevaLiquidacionModal({ opened, onClose, periodoInicial }: Nueva
 function NuevaLiquidacionForm({ periodoInicial, onCancel }: { periodoInicial: Periodo; onCancel: () => void }) {
   const navigate = useNavigate()
   const [periodo, setPeriodo] = useState<Periodo | null>(periodoInicial)
-  const [fechaCargo, setFechaCargo] = useState<IsoDate | null>(ultimoDiaDelPeriodo(periodoInicial))
-  const [fechaPago, setFechaPago] = useState<IsoDate | null>(ultimoDiaDelPeriodo(periodoInicial))
+  const [fechaCargo, setFechaCargo] = useState<IsoDate | null>(fechaResolucion(periodoInicial))
+  const [fechaPago, setFechaPago] = useState<IsoDate | null>(fechaResolucion(periodoInicial))
   const [intentado, setIntentado] = useState(false)
 
   const crear = useCrearLiquidacion({
@@ -43,8 +44,8 @@ function NuevaLiquidacionForm({ periodoInicial, onCancel }: { periodoInicial: Pe
     const nuevo = valor ? valor.slice(0, 7) : null
     setPeriodo(nuevo)
     if (nuevo) {
-      setFechaCargo(ultimoDiaDelPeriodo(nuevo))
-      setFechaPago(ultimoDiaDelPeriodo(nuevo))
+      setFechaCargo(fechaResolucion(nuevo))
+      setFechaPago(fechaResolucion(nuevo))
     }
     crear.reset()
   }

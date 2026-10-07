@@ -5,7 +5,8 @@ import { ActionIcon, Button, Checkbox, Group, Paper, Select, Stack, Text, TextIn
 import type { LineaManual, TipoConcepto } from '@shared/types'
 import { useState } from 'react'
 import { MoneyInput } from '../../components/MoneyInput'
-import { formatCantidad, nuevaLineaManual, parseCantidad } from './entradas'
+import { formatDecimal } from '../../format'
+import { nuevaLineaManual, parseCantidad } from './entradas'
 
 const TIPOS = [
   { value: 'haber', label: 'Haber' },
@@ -168,13 +169,13 @@ interface CantidadInputProps {
 
 /** Optional decimal ("2,5"). Invalid text shows an error and isn't propagated. */
 function CantidadInput({ value, onChange, ...props }: CantidadInputProps) {
-  const [text, setText] = useState(() => formatCantidad(value))
+  const [text, setText] = useState(() => formatDecimal(value))
   const [invalid, setInvalid] = useState(false)
   const [prevValue, setPrevValue] = useState(value)
   if (value !== prevValue) {
     setPrevValue(value)
     if (parseCantidad(text) !== value) {
-      setText(formatCantidad(value))
+      setText(formatDecimal(value))
       setInvalid(false)
     }
   }
@@ -195,7 +196,7 @@ function CantidadInput({ value, onChange, ...props }: CantidadInputProps) {
         if (parsed !== undefined && parsed !== value) onChange(parsed)
       }}
       onBlur={() => {
-        setText(formatCantidad(value))
+        setText(formatDecimal(value))
         setInvalid(false)
       }}
     />

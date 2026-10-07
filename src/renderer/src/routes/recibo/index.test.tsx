@@ -69,7 +69,7 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
     expect(screen.getByText('Recibo del período 08/2024')).toBeInTheDocument()
 
     const fonasa = screen.getByTestId('linea-auto-FONASA')
-    expect(fonasa).toHaveTextContent('8 %')
+    expect(fonasa).toHaveTextContent('8%')
     expect(fonasa).toHaveTextContent('2.400,00')
     expect(fonasa).toHaveTextContent('Calculado: 8 %')
     // IRPF is 0 and omitted by main, but it still gets an override control.
@@ -115,7 +115,7 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
 
     await waitFor(() => expect(actualizarRecibo).toHaveBeenCalledWith({ id: 5, entradas: { ...ENTRADAS_VACIAS, overrides: { fonasaTasa: '0.06' } } }))
     const fonasa = screen.getByTestId('linea-auto-FONASA')
-    await waitFor(() => expect(fonasa).toHaveTextContent('6 %'))
+    await waitFor(() => expect(fonasa).toHaveTextContent('6%'))
     expect(within(fonasa).getByText('Modificado')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Restaurar FONASA' }))

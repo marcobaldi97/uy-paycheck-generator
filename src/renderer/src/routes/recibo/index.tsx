@@ -3,6 +3,7 @@
 // computed lines and the preview. Read-only while the liquidación is emitida.
 
 import { Alert, Anchor, Badge, Grid, Group, Loader, NumberInput, Paper, Stack, Text, Title } from '@mantine/core'
+import type { OverrideKey } from '@shared/conceptos'
 import type { Overrides, ReciboDetalle, ReciboEntradas } from '@shared/types'
 import { formatMoney } from '@shared/money'
 import { useState, type ReactNode } from 'react'
@@ -11,8 +12,9 @@ import { errorMessage } from '../../api/client'
 import { useRecibo } from '../../api/hooks'
 import { PersonAvatar } from '../../components/PersonAvatar'
 import { PageHeader } from '../../components/PageHeader'
+import { formatPeriodo, parseId } from '../../format'
 import { paths } from '../../paths'
-import { conOverride, type OverrideKey } from './entradas'
+import { conOverride } from './entradas'
 import { LineasAuto } from './LineasAuto'
 import { LineasManuales } from './LineasManuales'
 import { NavegacionRecibos } from './NavegacionRecibos'
@@ -257,16 +259,4 @@ function Total({ label, value, fuerte = false }: { label: string; value: number;
       </Text>
     </div>
   )
-}
-
-function parseId(value: string | undefined): number | null {
-  if (!value || !/^\d+$/.test(value)) return null
-  const id = Number(value)
-  return id > 0 ? id : null
-}
-
-/** "2024-08" → "08/2024". */
-function formatPeriodo(periodo: string): string {
-  const [year, month] = periodo.split('-')
-  return `${month}/${year}`
 }

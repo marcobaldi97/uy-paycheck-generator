@@ -9,7 +9,7 @@ import { useState } from 'react'
 import { errorMessage } from '../../api/client'
 import { useParametros } from '../../api/hooks'
 import { PageHeader } from '../../components/PageHeader'
-import { formatFecha } from './form'
+import { formatFecha } from '../../format'
 import { NuevaVersionModal } from './NuevaVersionModal'
 import { ParametrosEditor } from './ParametrosEditor'
 

@@ -1,17 +1,8 @@
 // Pure helpers for editing ReciboEntradas in the editor. They only reshape user input;
 // every number shown on the receipt comes back from main.
 
-import type { CodigoConcepto, DecimalString, LineaManual, Overrides } from '@shared/types'
-
-export type OverrideKey = keyof Overrides
-
-/** Auto lines that accept an override, and the override key each one uses. */
-export const OVERRIDE_POR_CODIGO: Partial<Record<CodigoConcepto, OverrideKey>> = {
-  MONTEPIO: 'montepioTasa',
-  FONASA: 'fonasaTasa',
-  FRL: 'frlTasa',
-  IRPF: 'irpfImporte',
-}
+import { tieneOverrides, type OverrideKey } from '@shared/conceptos'
+import type { DecimalString, LineaManual, Overrides } from '@shared/types'
 
 /** Display names used when a line is missing (e.g. IRPF is omitted when it is 0). */
 export const NOMBRE_OVERRIDE: Record<OverrideKey, string> = {
@@ -32,7 +23,7 @@ export function conOverride<K extends OverrideKey>(
   const next: Overrides = { ...overrides }
   if (value === undefined) delete next[key]
   else next[key] = value
-  return Object.keys(next).length === 0 ? null : next
+  return tieneOverrides(next) ? next : null
 }
 
 export function tieneOverride(overrides: Overrides | null, key: OverrideKey): boolean {
@@ -57,9 +48,4 @@ export function parseCantidad(text: string): DecimalString | null | undefined {
   if (normalized === '') return null
   if (!/^-?\d+(\.\d+)?$/.test(normalized)) return undefined
   return normalized
-}
-
-/** "2.5" → "2,5". */
-export function formatCantidad(value: DecimalString | null): string {
-  return value === null ? '' : value.replace('.', ',')
 }

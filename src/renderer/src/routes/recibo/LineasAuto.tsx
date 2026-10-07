@@ -3,11 +3,13 @@
 // Nothing here computes amounts; after each save main sends the recomputed lines back.
 
 import { Badge, Button, Group, Stack, Table, Text, TextInput } from '@mantine/core'
-import { formatMoney, formatRatePercent, parseRatePercent } from '@shared/money'
+import { OVERRIDE_POR_CODIGO, type OverrideKey } from '@shared/conceptos'
+import { formatMoney, formatRatePercent, parseTasaPercent } from '@shared/money'
 import type { Cents, Linea, Overrides, Rate, ValoresCalculados } from '@shared/types'
 import { useState } from 'react'
 import { MoneyInput } from '../../components/MoneyInput'
-import { formatCantidad, NOMBRE_OVERRIDE, ORDEN_OVERRIDES, OVERRIDE_POR_CODIGO, tieneOverride, type OverrideKey } from './entradas'
+import { formatCantidad } from '../../format'
+import { NOMBRE_OVERRIDE, ORDEN_OVERRIDES, tieneOverride } from './entradas'
 
 export interface LineasAutoProps {
   lineas: Linea[]
@@ -74,7 +76,7 @@ export function LineasAuto({ lineas, overrides, valoresCalculados, onOverride, d
                 </Group>
               </Table.Td>
               <Table.Td ta="right">
-                <Text size="sm">{cantidad(fila)}</Text>
+                <Text size="sm">{fila.linea ? formatCantidad(fila.linea) : ''}</Text>
               </Table.Td>
               <Table.Td ta="right">
                 <Text size="sm">{fila.linea?.valorUnitario != null ? formatMoney(fila.linea.valorUnitario) : ''}</Text>
@@ -100,13 +102,6 @@ export function LineasAuto({ lineas, overrides, valoresCalculados, onOverride, d
       </Table.Tbody>
     </Table>
   )
-}
-
-function cantidad(fila: Fila): string {
-  const value = fila.linea?.cantidad
-  if (value == null) return ''
-  // Montepío / FONASA / FRL lines carry the rate in `cantidad`.
-  return fila.override && fila.override !== 'irpfImporte' ? `${formatRatePercent(value)} %` : formatCantidad(value)
 }
 
 interface OverrideControlProps {
@@ -217,8 +212,5 @@ function TasaInput({ value, onChange, ...props }: TasaInputProps) {
 
 /** undefined for empty (no override), null for invalid. */
 function parseTasa(text: string): Rate | undefined | null {
-  if (text.trim() === '') return undefined
-  const rate = parseRatePercent(text)
-  if (rate === null || Number(rate) > 1) return null
-  return rate
+  return text.trim() === '' ? undefined : parseTasaPercent(text)
 }

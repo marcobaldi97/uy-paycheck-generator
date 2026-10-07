@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { conOverride, formatCantidad, parseCantidad, tieneOverride } from './entradas'
+import { conOverride, parseCantidad, tieneOverride } from './entradas'
 
 describe('conOverride', () => {
   it('adds, replaces and removes one key without mutating', () => {
@@ -26,7 +26,5 @@ describe('cantidad', () => {
     expect(parseCantidad('')).toBeNull()
     expect(parseCantidad('2,')).toBeUndefined()
     expect(parseCantidad('abc')).toBeUndefined()
-    expect(formatCantidad('2.5')).toBe('2,5')
-    expect(formatCantidad(null)).toBe('')
   })
 })
