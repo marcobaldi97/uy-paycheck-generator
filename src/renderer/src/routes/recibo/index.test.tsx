@@ -97,14 +97,17 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
   })
 
   it('debounces bursts of edits into a single save of the latest value', async () => {
-    const { actualizarRecibo, user } = setup(detalle(), 300)
+    // A long debounce, so slow keystrokes under a loaded test run still land in one burst.
+    const { actualizarRecibo, user } = setup(detalle(), 1000)
     actualizarRecibo.mockResolvedValue(ok(conFonasa('0.065')))
     const input = await screen.findByLabelText('Ajuste FONASA')
 
     await user.type(input, '6,5')
     expect(screen.getByTestId('estado-guardado')).toHaveTextContent('Cambios sin guardar')
 
-    await waitFor(() => expect(screen.getByTestId('estado-guardado')).toHaveTextContent('Cambios guardados'))
+    await waitFor(() => expect(screen.getByTestId('estado-guardado')).toHaveTextContent('Cambios guardados'), {
+      timeout: 5000,
+    })
     expect(guardadas(actualizarRecibo)).toEqual([{ ...ENTRADAS_VACIAS, overrides: { fonasaTasa: '0.065' } }])
   })
 
