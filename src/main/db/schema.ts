@@ -12,6 +12,7 @@ import type {
   Overrides,
   TipoConcepto,
   TrabajadorSnapshot,
+  ValoresCalculados,
 } from '@shared/types'
 
 /** Single row, id always 1. */
@@ -138,7 +139,8 @@ export const liquidaciones = sqliteTable(
 /**
  * One per worker per liquidación. Besides the planned columns, it stores the editor inputs
  * (`dias_no_trabajados`, `lineas_manuales`) so ReciboEntradas round-trips exactly.
- * Snapshots are null until the liquidación is emitida.
+ * Snapshots are null until the liquidación is emitida. `valores_calculados` keeps the engine's
+ * values without overrides from the last calculation; null on rows stored before migration 0005.
  */
 export const recibos = sqliteTable(
   'recibos',
@@ -163,6 +165,7 @@ export const recibos = sqliteTable(
     totalHaberes: integer('total_haberes').notNull(),
     totalDescuentos: integer('total_descuentos').notNull(),
     liquido: integer('liquido').notNull(),
+    valoresCalculados: text('valores_calculados', { mode: 'json' }).$type<ValoresCalculados>(),
   },
   (t) => [uniqueIndex('recibos_liquidacion_trabajador_unique').on(t.liquidacionId, t.trabajadorId)],
 )

@@ -1,0 +1,1 @@
+ALTER TABLE `recibos` ADD `valores_calculados` text;
