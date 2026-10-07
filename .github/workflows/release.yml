@@ -1,0 +1,63 @@
+# Publishes a GitHub Release when master gets a package.json version that has no release yet.
+name: Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Leer versión
+        id: version
+        run: |
+          v=$(node -p "require('./package.json').version")
+          echo "tag=v$v" >> "$GITHUB_OUTPUT"
+          if gh release view "v$v" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "La release v$v ya existe; no se publica nada."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.version.outputs.exists == 'false'
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Instalar dependencias
+        if: steps.version.outputs.exists == 'false'
+        run: npm ci
+
+      # --publish never: electron-builder would otherwise try to publish on its own when it sees GH_TOKEN.
+      - name: Empaquetar
+        if: steps.version.outputs.exists == 'false'
+        run: |
+          npx electron-vite build
+          npx electron-builder --win --publish never
+
+      - name: Publicar release
+        if: steps.version.outputs.exists == 'false'
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --target "$GITHUB_SHA" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --generate-notes \
+            dist/*-portable.exe dist/*-setup.exe
