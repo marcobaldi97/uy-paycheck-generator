@@ -1,6 +1,6 @@
 # Recibos de sueldo
 
-App de escritorio para Windows que arma los recibos de sueldo mensuales (liquidación tipo N) de una empresa uruguaya. La hice para dejar de usar la planilla de Excel con la que los veníamos haciendo: los datos se cargan desde la app, quedan guardados en una base local y los recibos salen en PDF o directo a la impresora. No hace falta tener Excel instalado.
+App de escritorio para Windows que arma los recibos de sueldo mensuales (liquidación tipo N) de una empresa uruguaya. La hice para dejar de usar la planilla de Excel con la que la empresa de un amigo lo venía haciendo: los datos se cargan desde la app, quedan guardados en una base local y los recibos salen en PDF o directamente a la impresora. No hace falta tener Excel instalado.
 
 ![Liquidaciones](docs/screenshots/01-liquidaciones.png)
 
@@ -8,8 +8,8 @@ App de escritorio para Windows que arma los recibos de sueldo mensuales (liquida
 
 - Guarda los datos de la empresa (RUT, MTSS, BPS, BSE, grupo y subgrupo) que van en el encabezado de cada recibo.
 - Lleva la lista de trabajadores con sus condiciones: sueldo nominal, cónyuge e hijos para FONASA, hijos y deducciones para IRPF. Las condiciones tienen fecha de vigencia, así que un aumento no pisa los meses anteriores.
-- Calcula montepío, FONASA, FRL e IRPF a partir de los parámetros vigentes (BPC, tasas, franjas). Los parámetros también se versionan por fecha y se editan desde la app, no hay nada legal escrito en el código.
-- Arma la liquidación del mes con un recibo por cada trabajador activo. Mientras está en borrador se pueden cargar días no trabajados, agregar líneas a mano (horas extra, adelantos, lo que sea) y corregir una tasa o el IRPF si hace falta.
+- Calcula Montepío, FONASA, FRL e IRPF a partir de los parámetros vigentes (BPC, tasas, franjas). Los parámetros también se versionan por fecha y se editan desde la app, no hay nada legal escrito en el código.
+- Arma la liquidación del mes con un recibo por cada trabajador activo. Mientras está en borrador, se pueden cargar días no trabajados, agregar líneas a mano (horas extra, adelantos, lo que sea) y corregir una tasa o el IRPF si hace falta.
 - El líquido se redondea siempre hacia arriba al peso siguiente.
 - Al emitir, la liquidación queda congelada con los datos de ese momento. Si hay que corregir algo se puede reabrir.
 - Exporta los recibos a PDF (uno solo o uno por trabajador) o los manda a imprimir, original y copia en la misma hoja.
