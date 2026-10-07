@@ -5,7 +5,8 @@ import { paths } from '../../paths'
 import { renderWithProviders } from '../../test/render'
 import { LiquidacionDetallePage } from './index'
 import { recibosDePrueba } from '../../components/Recibo.fixture'
-import { detalle, err, installApi, ok, removeApi } from './testApi'
+import { err, instalarApi, ok, quitarApi } from '../../test/fakeApi'
+import { detalle } from './testApi'
 
 function renderDetalle(path = paths.liquidacion(2)) {
   return renderWithProviders(
@@ -34,12 +35,12 @@ const abrirImprimir = async () => {
 /** Mantine keeps modals and menus mounted during their exit transition. */
 const sinDialogo = () => waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 
-afterEach(removeApi)
+afterEach(quitarApi)
 
 describe('LiquidacionDetallePage', () => {
   it('shows one row per worker and a totals footer', async () => {
     const obtener = vi.fn().mockResolvedValue(ok(detalle()))
-    installApi({ liquidaciones: { obtener } })
+    instalarApi({ liquidaciones: { obtener } })
     renderDetalle()
 
     const filas = await screen.findAllByTestId('recibo-fila')
@@ -67,7 +68,7 @@ describe('LiquidacionDetallePage', () => {
 
   it('shows NO_ENCONTRADO and rejects a malformed id without calling the API', async () => {
     const obtener = vi.fn().mockResolvedValue(err('NO_ENCONTRADO', 'Liquidación no encontrada'))
-    installApi({ liquidaciones: { obtener } })
+    instalarApi({ liquidaciones: { obtener } })
     const { unmount } = renderDetalle(paths.liquidacion(99))
     expect(await screen.findByRole('alert')).toHaveTextContent('Liquidación no encontrada')
     unmount()
@@ -82,7 +83,7 @@ describe('LiquidacionDetallePage', () => {
     const recalculado = detalle()
     recalculado.recibos[0]!.liquido = 2_500_000
     const recalcular = vi.fn().mockResolvedValue(ok(recalculado))
-    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())), recalcular } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())), recalcular } })
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
@@ -95,7 +96,7 @@ describe('LiquidacionDetallePage', () => {
 
   it('emits after confirming, then offers Reabrir instead of Recalcular and Emitir', async () => {
     const emitir = vi.fn().mockResolvedValue(ok(detalle('emitida')))
-    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())), emitir } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())), emitir } })
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
@@ -117,7 +118,7 @@ describe('LiquidacionDetallePage', () => {
     const emitir = vi
       .fn()
       .mockResolvedValue(err('CONFLICTO', 'Guardá los datos de la empresa antes de emitir la liquidación'))
-    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())), emitir } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())), emitir } })
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
@@ -132,7 +133,7 @@ describe('LiquidacionDetallePage', () => {
   it('refetches when a write hits an already-emitida liquidación', async () => {
     const obtener = vi.fn().mockResolvedValueOnce(ok(detalle())).mockResolvedValue(ok(detalle('emitida')))
     const recalcular = vi.fn().mockResolvedValue(err('LIQUIDACION_EMITIDA', 'La liquidación ya fue emitida'))
-    installApi({ liquidaciones: { obtener, recalcular } })
+    instalarApi({ liquidaciones: { obtener, recalcular } })
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
@@ -145,7 +146,7 @@ describe('LiquidacionDetallePage', () => {
 
   it('reopens an emitida only after confirming', async () => {
     const reabrir = vi.fn().mockResolvedValue(ok(detalle('borrador')))
-    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle('emitida'))), reabrir } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle('emitida'))), reabrir } })
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
@@ -169,7 +170,7 @@ describe('LiquidacionDetallePage', () => {
   it('exports a single PDF, disabling actions while it runs', async () => {
     const pendiente = deferred<unknown>()
     const exportar = vi.fn().mockReturnValue(pendiente.promise)
-    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { exportar } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { exportar } })
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
@@ -193,7 +194,7 @@ describe('LiquidacionDetallePage', () => {
         archivos: ['C:\\Recibos\\ANA PÉREZ--05-09-2024.pdf', 'C:\\Recibos\\JUAN GÓMEZ--05-09-2024.pdf'],
       }),
     )
-    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { exportar } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { exportar } })
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
@@ -206,7 +207,7 @@ describe('LiquidacionDetallePage', () => {
 
   it('reopens the export menu with a single click after an export', async () => {
     const exportar = vi.fn().mockResolvedValue(ok({ cancelado: false, archivos: ['C:\\Recibos\\Agosto.pdf'] }))
-    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { exportar } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { exportar } })
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
@@ -224,7 +225,7 @@ describe('LiquidacionDetallePage', () => {
 
   it('says nothing when the save dialog is cancelled', async () => {
     const exportar = vi.fn().mockResolvedValue(ok({ cancelado: true, archivos: [] }))
-    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { exportar } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { exportar } })
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
@@ -239,7 +240,7 @@ describe('LiquidacionDetallePage', () => {
 
   it('shows CONFLICTO from export', async () => {
     const exportar = vi.fn().mockResolvedValue(err('CONFLICTO', 'La liquidación no tiene recibos'))
-    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { exportar } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { exportar } })
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
@@ -252,7 +253,7 @@ describe('LiquidacionDetallePage', () => {
   it('previews every receipt before exporting from the preview', async () => {
     const datosImpresion = vi.fn().mockResolvedValue(ok(recibosDePrueba(2)))
     const exportar = vi.fn().mockResolvedValue(ok({ cancelado: false, archivos: ['C:\\Recibos\\Agosto.pdf'] }))
-    installApi({
+    instalarApi({
       liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) },
       pdf: { datosImpresion, exportar },
     })
@@ -277,7 +278,7 @@ describe('LiquidacionDetallePage', () => {
 
   it('shows an error in the preview when the receipts cannot be loaded', async () => {
     const datosImpresion = vi.fn().mockResolvedValue(err('INTERNO', 'Falló la base de datos'))
-    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { datosImpresion } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { datosImpresion } })
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
@@ -298,7 +299,7 @@ describe('LiquidacionDetallePage', () => {
         { nombre: 'PDF', predeterminada: false },
       ]),
     )
-    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { imprimir, impresoras } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) }, pdf: { imprimir, impresoras } })
     renderDetalle()
 
     await screen.findAllByTestId('recibo-fila')
@@ -324,7 +325,7 @@ describe('LiquidacionDetallePage', () => {
 
   it("prints one worker's receipt from its row", async () => {
     const imprimir = vi.fn().mockResolvedValue(ok(null))
-    installApi({
+    instalarApi({
       liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) },
       pdf: { imprimir, impresoras: vi.fn().mockResolvedValue(ok([{ nombre: 'HP LaserJet', predeterminada: true }])) },
     })
@@ -343,7 +344,7 @@ describe('LiquidacionDetallePage', () => {
 
   it('shows print errors', async () => {
     const imprimir = vi.fn().mockResolvedValue(err('NO_ENCONTRADO', 'Impresora no encontrada: PDF'))
-    installApi({
+    instalarApi({
       liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle())) },
       pdf: { imprimir, impresoras: vi.fn().mockResolvedValue(ok([{ nombre: 'PDF', predeterminada: false }])) },
     })
@@ -359,7 +360,7 @@ describe('LiquidacionDetallePage', () => {
   })
 
   it('disables Emitir and the export/print menu when there are no receipts', async () => {
-    installApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle('borrador', false))) } })
+    instalarApi({ liquidaciones: { obtener: vi.fn().mockResolvedValue(ok(detalle('borrador', false))) } })
     renderDetalle()
 
     expect(await screen.findByText('Esta liquidación no tiene recibos.')).toBeInTheDocument()

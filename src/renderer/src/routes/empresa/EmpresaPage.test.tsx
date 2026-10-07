@@ -1,8 +1,8 @@
-import type { Api } from '@shared/api'
 import type { Empresa } from '@shared/types'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { err, instalarApi, ok, quitarApi } from '../../test/fakeApi'
 import { renderUi } from '../../test/render'
 import { EmpresaPage } from './index'
 
@@ -17,16 +17,11 @@ const empresa: Empresa = {
   subgrupo: '01',
 }
 
-function mockApi(obtener: Empresa | null, guardar = vi.fn(async (e: Empresa) => ({ ok: true, data: e }))) {
-  window.api = {
-    empresa: { obtener: vi.fn().mockResolvedValue({ ok: true, data: obtener }), guardar },
-  } as unknown as Api
-  return { guardar }
+function mockApi(obtener: Empresa | null, guardar: Mock = vi.fn(async (e: Empresa) => ok(e))) {
+  return instalarApi({ empresa: { obtener: vi.fn().mockResolvedValue(ok(obtener)), guardar } }).empresa
 }
 
-afterEach(() => {
-  delete (window as { api?: Api }).api
-})
+afterEach(quitarApi)
 
 describe('EmpresaPage', () => {
   it('starts empty on a fresh DB and validates required fields', async () => {
@@ -78,10 +73,7 @@ describe('EmpresaPage', () => {
 
   it('shows the API error when saving fails', async () => {
     const user = userEvent.setup()
-    mockApi(
-      empresa,
-      vi.fn(async () => ({ ok: false, error: { code: 'INTERNO', message: 'Error inesperado' } })) as never,
-    )
+    mockApi(empresa, vi.fn().mockResolvedValue(err('INTERNO', 'Error inesperado')))
     renderUi(<EmpresaPage />)
 
     await user.click(await screen.findByRole('button', { name: 'Guardar' }))

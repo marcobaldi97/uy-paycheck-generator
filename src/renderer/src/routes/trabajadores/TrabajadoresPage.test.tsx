@@ -1,17 +1,21 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it } from 'vitest'
-import { instalarApiFalsa, quitarApiFalsa, renderTrabajadores, trabajadorDePrueba } from './testing'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { err, instalarApi, ok, quitarApi } from '../../test/fakeApi'
+import { renderTrabajadores, trabajadorDePrueba } from './testing'
 
-afterEach(quitarApiFalsa)
+afterEach(quitarApi)
 
 describe('TrabajadoresPage', () => {
-  it('lists active workers by number and shows inactive ones when the filter is off', async () => {
-    const { api } = instalarApiFalsa([
-      trabajadorDePrueba(2, { numero: 20, nombre: 'BEATRIZ' }),
-      trabajadorDePrueba(1, { numero: 10, nombre: 'ANA' }),
-      trabajadorDePrueba(3, { numero: 30, nombre: 'CARLOS', activo: false }),
-    ])
+  it('lists active workers in API order and shows inactive ones when the filter is off', async () => {
+    const ana = trabajadorDePrueba(1, { numero: 10, nombre: 'ANA' })
+    const beatriz = trabajadorDePrueba(2, { numero: 20, nombre: 'BEATRIZ' })
+    const carlos = trabajadorDePrueba(3, { numero: 30, nombre: 'CARLOS', activo: false })
+    const { trabajadores: api } = instalarApi({
+      trabajadores: {
+        listar: vi.fn().mockResolvedValue(ok([ana, beatriz, carlos])).mockResolvedValueOnce(ok([ana, beatriz])),
+      },
+    })
     renderTrabajadores()
 
     await screen.findByText('ANA')
@@ -29,7 +33,13 @@ describe('TrabajadoresPage', () => {
   })
 
   it('opens the detail when a row is clicked', async () => {
-    instalarApiFalsa([trabajadorDePrueba(7, { nombre: 'ANA' })])
+    const ana = trabajadorDePrueba(7, { nombre: 'ANA' })
+    instalarApi({
+      trabajadores: {
+        listar: vi.fn().mockResolvedValue(ok([ana])),
+        obtener: vi.fn().mockResolvedValue(ok({ trabajador: ana, condiciones: [] })),
+      },
+    })
     renderTrabajadores()
 
     await userEvent.click(await screen.findByText('Administrativo'))
@@ -37,7 +47,7 @@ describe('TrabajadoresPage', () => {
   })
 
   it('links to the create form', async () => {
-    instalarApiFalsa()
+    instalarApi({ trabajadores: { listar: vi.fn().mockResolvedValue(ok([])) } })
     renderTrabajadores()
 
     expect(await screen.findByText('No hay trabajadores activos.')).toBeInTheDocument()
@@ -46,8 +56,7 @@ describe('TrabajadoresPage', () => {
   })
 
   it('shows API errors', async () => {
-    const { api } = instalarApiFalsa()
-    api.listar.mockResolvedValueOnce({ ok: false, error: { code: 'INTERNO', message: 'Falló la base.' } } as never)
+    instalarApi({ trabajadores: { listar: vi.fn().mockResolvedValue(err('INTERNO', 'Falló la base.')) } })
     renderTrabajadores()
 
     expect(await screen.findByText('Falló la base.')).toBeInTheDocument()

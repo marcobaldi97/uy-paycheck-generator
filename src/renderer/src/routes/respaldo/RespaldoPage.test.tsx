@@ -1,27 +1,25 @@
-import type { Api } from '@shared/api'
 import type { RespaldoInfo, ResultadoRespaldo } from '@shared/types'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import dayjs from 'dayjs'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { err, instalarApi, ok, quitarApi } from '../../test/fakeApi'
 import { renderUi } from '../../test/render'
 import { RespaldoPage } from './index'
 
 const ubicacionDb = 'C:\\Users\\x\\AppData\\Roaming\\recibos\\recibos.db'
 
-function mockApi(infos: RespaldoInfo[], crear: ReturnType<typeof vi.fn>) {
+/** `info` answers each of `infos` in turn, then keeps answering the last one. */
+function mockApi(infos: RespaldoInfo[], crear: Mock) {
   const info = vi.fn()
-  for (const i of infos) info.mockResolvedValueOnce({ ok: true, data: i })
-  info.mockResolvedValue({ ok: true, data: infos[infos.length - 1] })
-  window.api = { respaldo: { info, crear } } as unknown as Api
-  return { info }
+  for (const i of infos) info.mockResolvedValueOnce(ok(i))
+  info.mockResolvedValue(ok(infos[infos.length - 1]))
+  return instalarApi({ respaldo: { info, crear } }).respaldo
 }
 
-const resultado = (data: ResultadoRespaldo) => vi.fn().mockResolvedValue({ ok: true, data })
+const resultado = (data: ResultadoRespaldo) => vi.fn().mockResolvedValue(ok(data))
 
-afterEach(() => {
-  delete (window as { api?: Api }).api
-})
+afterEach(quitarApi)
 
 describe('RespaldoPage', () => {
   it('shows "Nunca" and the DB location before the first backup', async () => {
@@ -72,10 +70,7 @@ describe('RespaldoPage', () => {
 
   it('shows the error message from main', async () => {
     const user = userEvent.setup()
-    const crear = vi.fn().mockResolvedValue({
-      ok: false,
-      error: { code: 'NO_ENCONTRADO', message: 'La carpeta elegida no existe' },
-    })
+    const crear = vi.fn().mockResolvedValue(err('NO_ENCONTRADO', 'La carpeta elegida no existe'))
     mockApi([{ ultimoRespaldo: null, ubicacionDb }], crear)
     renderUi(<RespaldoPage />)
 

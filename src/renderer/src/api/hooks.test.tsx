@@ -1,8 +1,9 @@
-import { API_METHODS, type Api, type ApiDomain, type ApiMethod } from '@shared/api'
+import { API_METHODS, type ApiDomain, type ApiMethod } from '@shared/api'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { err, instalarApi, ok, quitarApi, type FakeApi } from '../test/fakeApi'
 import { ApiRequestError } from './client'
 import * as hooks from './hooks'
 import { queryKeys } from './hooks'
@@ -43,8 +44,8 @@ const hookByMethod = {
   respaldo: { info: hooks.useRespaldoInfo, crear: hooks.useCrearRespaldo },
 } satisfies { [D in ApiDomain]: { [M in ApiMethod<D>]: (...args: never[]) => unknown } }
 
-function setup(api: Record<string, Record<string, unknown>>) {
-  window.api = api as unknown as Api
+function setup(api: FakeApi) {
+  instalarApi(api)
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -52,11 +53,10 @@ function setup(api: Record<string, Record<string, unknown>>) {
   return { client, wrapper }
 }
 
-const ok = <T,>(data: T) => vi.fn().mockResolvedValue({ ok: true, data })
+/** A mock IPC method that answers `data`. */
+const responde = <T,>(data: T) => vi.fn().mockResolvedValue(ok(data))
 
-afterEach(() => {
-  delete (window as { api?: Api }).api
-})
+afterEach(quitarApi)
 
 describe('hooks', () => {
   it('has one hook per API method', () => {
@@ -68,7 +68,7 @@ describe('hooks', () => {
   })
 
   it('queries pass their input and cache by key', async () => {
-    const listar = ok([{ id: 1 }])
+    const listar = responde([{ id: 1 }])
     const { client, wrapper } = setup({ trabajadores: { listar } })
 
     const { result } = renderHook(() => hooks.useTrabajadores(true), { wrapper })
@@ -80,8 +80,7 @@ describe('hooks', () => {
   })
 
   it('query errors are ApiRequestError with the domain code', async () => {
-    const error = { code: 'NO_ENCONTRADO', message: 'No existe.' }
-    const { wrapper } = setup({ liquidaciones: { obtener: vi.fn().mockResolvedValue({ ok: false, error }) } })
+    const { wrapper } = setup({ liquidaciones: { obtener: vi.fn().mockResolvedValue(err('NO_ENCONTRADO', 'No existe.')) } })
 
     const { result } = renderHook(() => hooks.useLiquidacion(9), { wrapper })
     await waitFor(() => expect(result.current.isError).toBe(true))
@@ -92,8 +91,9 @@ describe('hooks', () => {
   })
 
   it('mutation errors reach onError and do not invalidate', async () => {
-    const error = { code: 'LIQUIDACION_EXISTENTE', message: 'Ya existe.' }
-    const { client, wrapper } = setup({ liquidaciones: { crear: vi.fn().mockResolvedValue({ ok: false, error }) } })
+    const { client, wrapper } = setup({
+      liquidaciones: { crear: vi.fn().mockResolvedValue(err('LIQUIDACION_EXISTENTE', 'Ya existe.')) },
+    })
     const spy = vi.spyOn(client, 'invalidateQueries')
     const onError = vi.fn()
 
@@ -109,8 +109,8 @@ describe('hooks', () => {
   })
 
   it('saving a worker refetches worker queries', async () => {
-    const listar = ok([])
-    const crear = ok({ id: 2 })
+    const listar = responde([])
+    const crear = responde({ id: 2 })
     const { wrapper } = setup({ trabajadores: { listar, crear } })
     const onSuccess = vi.fn()
 
@@ -129,7 +129,7 @@ describe('hooks', () => {
   })
 
   it('void mutations are called without arguments', async () => {
-    const listo = ok(null)
+    const listo = responde(null)
     const { wrapper } = setup({ pdf: { listo } })
 
     const { result } = renderHook(() => hooks.usePdfListo(), { wrapper })
@@ -140,7 +140,7 @@ describe('hooks', () => {
 
   it('emitir stores the returned detail and invalidates the rest of liquidaciones', async () => {
     const detalle = { liquidacion: { id: 3, estado: 'emitida' }, recibos: [], totales: {} }
-    const emitir = ok(detalle)
+    const emitir = responde(detalle)
     const { client, wrapper } = setup({ liquidaciones: { emitir } })
     client.setQueryData(queryKeys.liquidaciones.listar(), [])
     client.setQueryData(queryKeys.liquidaciones.obtener(3), { stale: true })
@@ -155,7 +155,7 @@ describe('hooks', () => {
 
   it('actualizarRecibo stores the recibo and invalidates its liquidación and the list', async () => {
     const recibo = { id: 7, liquidacionId: 3 }
-    const { client, wrapper } = setup({ liquidaciones: { actualizarRecibo: ok(recibo) } })
+    const { client, wrapper } = setup({ liquidaciones: { actualizarRecibo: responde(recibo) } })
     client.setQueryData(queryKeys.liquidaciones.listar(), [])
     client.setQueryData(queryKeys.liquidaciones.obtener(3), {})
     client.setQueryData(queryKeys.liquidaciones.obtener(4), {})
@@ -171,7 +171,7 @@ describe('hooks', () => {
   })
 
   it('crearRespaldo invalidates respaldo info', async () => {
-    const { client, wrapper } = setup({ respaldo: { crear: ok({ ruta: 'x' }) } })
+    const { client, wrapper } = setup({ respaldo: { crear: responde({ ruta: 'x' }) } })
     client.setQueryData(queryKeys.respaldo.info(), {})
 
     const { result } = renderHook(() => hooks.useCrearRespaldo(), { wrapper })

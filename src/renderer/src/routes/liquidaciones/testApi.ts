@@ -1,33 +1,6 @@
-// Test helpers: fake window.api and sample data for the liquidaciones screens.
+// Test fixtures for the liquidaciones screens. Install them with `instalarApi` from test/fakeApi.
 
-import type { Api, ApiResult, ErrorCode } from '@shared/api'
 import type { LiquidacionDetalle, LiquidacionResumen } from '@shared/types'
-import { vi } from 'vitest'
-
-export const ok = <T>(data: T): ApiResult<T> => ({ ok: true, data })
-export const err = (code: ErrorCode, message: string, details?: Record<string, unknown>): ApiResult<never> => ({
-  ok: false,
-  error: details === undefined ? { code, message } : { code, message, details },
-})
-
-type FakeApi = Record<string, Record<string, ReturnType<typeof vi.fn>>>
-
-/** Installs `window.api` with the given methods; any other method resolves to INTERNO. */
-export function installApi(methods: FakeApi): FakeApi {
-  const api = new Proxy(methods, {
-    get: (target, domain: string) =>
-      new Proxy(target[domain] ?? {}, {
-        get: (fns, method: string) =>
-          fns[method] ?? vi.fn().mockResolvedValue(err('INTERNO', `sin mock: ${domain}.${method}`)),
-      }),
-  })
-  window.api = api as unknown as Api
-  return methods
-}
-
-export function removeApi(): void {
-  delete (window as { api?: Api }).api
-}
 
 export const resumenes: LiquidacionResumen[] = [
   {
