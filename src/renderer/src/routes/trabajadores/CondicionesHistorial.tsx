@@ -3,7 +3,8 @@
 import { Badge, Group, Paper, Stack, Table, Text } from '@mantine/core'
 import { formatMoney, formatRatePercent } from '@shared/money'
 import type { Condicion } from '@shared/types'
-import { condicionVigente, formatFecha } from './forms'
+import { formatFecha } from '../../format'
+import { condicionVigente } from './forms'
 
 export interface CondicionesHistorialProps {
   /** Newest first, as `trabajadores.obtener` returns them. */

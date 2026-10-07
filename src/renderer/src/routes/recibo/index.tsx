@@ -3,21 +3,22 @@
 // computed lines and the preview. Read-only while the liquidación is emitida.
 
 import { Alert, Anchor, Badge, Grid, Group, Loader, NumberInput, Paper, Stack, Text, Title } from '@mantine/core'
-import type { Overrides, ReciboDetalle, ReciboEntradas } from '@shared/types'
+import type { ReciboDetalle } from '@shared/types'
 import { formatMoney } from '@shared/money'
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
 import { errorMessage } from '../../api/client'
 import { useRecibo } from '../../api/hooks'
 import { PersonAvatar } from '../../components/PersonAvatar'
 import { PageHeader } from '../../components/PageHeader'
+import { formatPeriodo, parseId } from '../../format'
 import { paths } from '../../paths'
-import { conOverride, type OverrideKey } from './entradas'
 import { LineasAuto } from './LineasAuto'
 import { LineasManuales } from './LineasManuales'
 import { NavegacionRecibos } from './NavegacionRecibos'
 import { ReciboPreview } from '../../components/ReciboPreview'
-import { useAutosave, type EstadoGuardado } from './useAutosave'
+import type { EstadoGuardado } from './useAutosave'
+import { useReciboDraft } from './useReciboDraft'
 
 export interface ReciboEditorPageProps {
   /** Debounce before an edit is saved, in ms. */
@@ -97,29 +98,7 @@ interface ReciboEditorProps {
 }
 
 function ReciboEditor({ detalle, volver, liquidacionId, autosaveMs, onEmitida }: ReciboEditorProps) {
-  const soloLectura = detalle.estado === 'emitida'
-  const { estado, programar } = useAutosave(detalle.id, { delay: autosaveMs, onEmitida })
-
-  // Local draft of what the user edits. Server lines/totals come from `detalle`.
-  const [borrador, setBorrador] = useState<ReciboEntradas>(detalle.entradas)
-  // After reabrir, start from what is stored rather than edits that were rejected.
-  const [prevEstado, setPrevEstado] = useState(detalle.estado)
-  if (detalle.estado !== prevEstado) {
-    setPrevEstado(detalle.estado)
-    if (detalle.estado === 'borrador') setBorrador(detalle.entradas)
-  }
-  const entradas = soloLectura ? detalle.entradas : borrador
-
-  function editar(next: ReciboEntradas) {
-    if (soloLectura) return
-    setBorrador(next)
-    programar(next)
-  }
-
-  function setOverride<K extends OverrideKey>(key: K, value: Overrides[K] | undefined) {
-    editar({ ...entradas, overrides: conOverride(entradas.overrides, key, value) })
-  }
-
+  const { entradas, editar, setOverride, estado, soloLectura } = useReciboDraft(detalle, { autosaveMs, onEmitida })
   const { trabajador, liquidacion } = detalle.impresion
 
   return (
@@ -257,16 +236,4 @@ function Total({ label, value, fuerte = false }: { label: string; value: number;
       </Text>
     </div>
   )
-}
-
-function parseId(value: string | undefined): number | null {
-  if (!value || !/^\d+$/.test(value)) return null
-  const id = Number(value)
-  return id > 0 ? id : null
-}
-
-/** "2024-08" → "08/2024". */
-function formatPeriodo(periodo: string): string {
-  const [year, month] = periodo.split('-')
-  return `${month}/${year}`
 }

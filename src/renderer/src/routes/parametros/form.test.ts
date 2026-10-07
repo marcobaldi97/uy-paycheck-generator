@@ -2,7 +2,6 @@ import { parametrosVersionSchema } from '@shared/schemas'
 import { describe, expect, it } from 'vitest'
 import { version2026 } from './fixture'
 import {
-  formatFecha,
   parametrosFormSchema,
   parseDecimalText,
   parseFechaUy,
@@ -54,10 +53,9 @@ describe('parametros form model', () => {
     expect(parseDecimalText('')).toBeNull()
   })
 
-  it('parses and formats dates', () => {
+  it('parses dates as typed', () => {
     expect(parseFechaUy('1/7/2027')).toBe('2027-07-01')
     expect(parseFechaUy('31/02/2027')).toBeNull()
     expect(parseFechaUy('2027-07-01')).toBeNull()
-    expect(formatFecha('2027-07-01')).toBe('01/07/2027')
   })
 })

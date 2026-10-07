@@ -2,10 +2,9 @@
 // Forms hold what the inputs hold (numbers may be '', percent as text); the API gets
 // validated domain values.
 
-import { formatRatePercent, parseRatePercent } from '@shared/money'
+import { formatRatePercent, parseRatePercent, parseTasaPercent } from '@shared/money'
 import { isoDateSchema, trabajadorInputSchema } from '@shared/schemas'
 import type { Cents, Condicion, CondicionInput, IrpfPctAtribucion, Trabajador, TrabajadorInput } from '@shared/types'
-import dayjs from 'dayjs'
 import { z } from 'zod'
 
 // ---------------------------------------------------------------- trabajador
@@ -84,11 +83,9 @@ export const condicionFormSchema = z.object({
   sueldoNominal: importe,
   fonasaConyuge: z.boolean(),
   fonasaHijos: z.boolean(),
-  fonasaTasaManual: z.string().refine((texto) => {
-    if (texto.trim() === '') return true
-    const tasa = parseRatePercent(texto)
-    return tasa !== null && Number(tasa) <= 1
-  }, 'Porcentaje inválido (entre 0 y 100, ej.: 4,5)'),
+  fonasaTasaManual: z
+    .string()
+    .refine((texto) => texto.trim() === '' || parseTasaPercent(texto) !== null, 'Porcentaje inválido (entre 0 y 100, ej.: 4,5)'),
   irpfHijos: cantidad,
   irpfHijosDiscapacidad: cantidad,
   irpfPctAtribucion: z.enum(['100', '50']),
@@ -145,12 +142,11 @@ export function formACondicionInput(values: CondicionFormValues): CondicionInput
 
 // ---------------------------------------------------------------- display
 
-/** "2026-03-01" → "01/03/2026". */
-export const formatFecha = (iso: string) => dayjs(iso).format('DD/MM/YYYY')
-
 /**
- * The condition in force on `hoy`: the newest one that already started. Conditions are
- * newest first. Returns undefined if all of them start in the future.
+ * The condition in force today (`hoy`), for the worker screen: the newest one that already
+ * started. Deliberately not tied to a period: a liquidación resolves conditions on its own
+ * date (`fechaResolucion` in @shared/periodo), in main. Conditions are newest first.
+ * Returns undefined if all of them start in the future.
  */
 export function condicionVigente(condiciones: readonly Condicion[], hoy: string): Condicion | undefined {
   return condiciones.find((c) => c.vigenteDesde <= hoy)

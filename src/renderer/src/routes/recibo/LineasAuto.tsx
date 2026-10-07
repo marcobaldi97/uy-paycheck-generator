@@ -2,12 +2,14 @@
 // FRL (rate) and IRPF (amount). Overridden lines carry a "Modificado" marker and "Restaurar".
 // Nothing here computes amounts; after each save main sends the recomputed lines back.
 
-import { Badge, Button, Group, Stack, Table, Text, TextInput } from '@mantine/core'
-import { formatMoney, formatRatePercent, parseRatePercent } from '@shared/money'
+import { Badge, Button, Group, Stack, Table, Text } from '@mantine/core'
+import { OVERRIDE_POR_CODIGO, type OverrideKey } from '@shared/conceptos'
+import { formatMoney, formatRatePercent, parseTasaPercent } from '@shared/money'
 import type { Cents, Linea, Overrides, Rate, ValoresCalculados } from '@shared/types'
-import { useState } from 'react'
 import { MoneyInput } from '../../components/MoneyInput'
-import { formatCantidad, NOMBRE_OVERRIDE, ORDEN_OVERRIDES, OVERRIDE_POR_CODIGO, tieneOverride, type OverrideKey } from './entradas'
+import { TextoParseadoInput } from '../../components/TextoParseadoInput'
+import { formatCantidad } from '../../format'
+import { NOMBRE_OVERRIDE, ORDEN_OVERRIDES, tieneOverride } from './entradas'
 
 export interface LineasAutoProps {
   lineas: Linea[]
@@ -74,7 +76,7 @@ export function LineasAuto({ lineas, overrides, valoresCalculados, onOverride, d
                 </Group>
               </Table.Td>
               <Table.Td ta="right">
-                <Text size="sm">{cantidad(fila)}</Text>
+                <Text size="sm">{fila.linea ? formatCantidad(fila.linea) : ''}</Text>
               </Table.Td>
               <Table.Td ta="right">
                 <Text size="sm">{fila.linea?.valorUnitario != null ? formatMoney(fila.linea.valorUnitario) : ''}</Text>
@@ -100,13 +102,6 @@ export function LineasAuto({ lineas, overrides, valoresCalculados, onOverride, d
       </Table.Tbody>
     </Table>
   )
-}
-
-function cantidad(fila: Fila): string {
-  const value = fila.linea?.cantidad
-  if (value == null) return ''
-  // Montepío / FONASA / FRL lines carry the rate in `cantidad`.
-  return fila.override && fila.override !== 'irpfImporte' ? `${formatRatePercent(value)} %` : formatCantidad(value)
 }
 
 interface OverrideControlProps {
@@ -154,8 +149,8 @@ function OverrideControl({ campo, nombre, overrides, calculados, onOverride, dis
       <TasaInput
         aria-label={`Ajuste ${nombre}`}
         placeholder={formatRatePercent(calculado)}
-        value={overrides?.[campo]}
-        onChange={(value) => onOverride(campo, value)}
+        value={overrides?.[campo] ?? null}
+        onChange={(value) => onOverride(campo, value ?? undefined)}
         disabled={disabled}
       />
       <Group gap={4} justify="space-between" wrap="nowrap">
@@ -168,57 +163,27 @@ function OverrideControl({ campo, nombre, overrides, calculados, onOverride, dis
   )
 }
 
-interface TasaInputProps {
+/** Percent text ("8" or "4,5") ↔ rate string ("0.08"). Empty means no override (null). */
+function TasaInput(props: {
   'aria-label': string
   placeholder: string
-  value: Rate | undefined
-  onChange: (value: Rate | undefined) => void
+  value: Rate | null
+  onChange: (value: Rate | null) => void
   disabled: boolean
-}
-
-/** Percent text ("8" or "4,5") ↔ rate string ("0.08"). Empty means no override. */
-function TasaInput({ value, onChange, ...props }: TasaInputProps) {
-  const display = (v: Rate | undefined) => (v === undefined ? '' : formatRatePercent(v))
-  const [text, setText] = useState(() => display(value))
-  const [invalid, setInvalid] = useState(false)
-  const [prevValue, setPrevValue] = useState(value)
-  if (value !== prevValue) {
-    setPrevValue(value)
-    if (parseTasa(text) !== value) {
-      setText(display(value))
-      setInvalid(false)
-    }
-  }
-
+}) {
   return (
-    <TextInput
+    <TextoParseadoInput
       {...props}
       size="xs"
-      inputMode="decimal"
-      autoComplete="off"
       rightSection={<Text size="xs">%</Text>}
-      styles={{ input: { textAlign: 'right' } }}
-      value={text}
-      error={invalid ? 'Tasa inválida (0 a 100)' : undefined}
-      onChange={(e) => {
-        const next = e.currentTarget.value
-        setText(next)
-        const parsed = parseTasa(next)
-        setInvalid(parsed === null)
-        if (parsed !== null && parsed !== value) onChange(parsed)
-      }}
-      onBlur={() => {
-        setText(display(value))
-        setInvalid(false)
-      }}
+      parse={parseTasa}
+      format={(v) => (v === null ? '' : formatRatePercent(v))}
+      mensajeInvalido="Tasa inválida (0 a 100)"
     />
   )
 }
 
-/** undefined for empty (no override), null for invalid. */
-function parseTasa(text: string): Rate | undefined | null {
-  if (text.trim() === '') return undefined
-  const rate = parseRatePercent(text)
-  if (rate === null || Number(rate) > 1) return null
-  return rate
+/** null for empty (no override), undefined for invalid. */
+function parseTasa(text: string): Rate | null | undefined {
+  return text.trim() === '' ? null : (parseTasaPercent(text) ?? undefined)
 }

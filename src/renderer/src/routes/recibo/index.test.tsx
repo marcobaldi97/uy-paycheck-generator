@@ -1,10 +1,11 @@
-import type { Api, ApiResult } from '@shared/api'
-import type { Linea, ReciboDetalle, ReciboEntradas } from '@shared/types'
+import type { ApiResult } from '@shared/api'
+import type { Linea, Overrides, ReciboDetalle, ReciboEntradas } from '@shared/types'
 import { configure, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { reciboCarmona } from '../../components/Recibo.fixture'
 import { paths } from '../../paths'
+import { err, instalarApi, ok, quitarApi } from '../../test/fakeApi'
 import { renderWithProviders } from '../../test/render'
 import { ReciboEditorPage } from './index'
 
@@ -25,26 +26,21 @@ function detalle(overrides: Partial<ReciboDetalle> = {}): ReciboDetalle {
   return { ...base, ...overrides }
 }
 
-/** What main would answer: the given entradas, FONASA line marked when overridden, a new líquido. */
-function respuesta(entradas: ReciboEntradas, liquido = 2_000_000, estado: ReciboDetalle['estado'] = 'borrador') {
+/** The recibo with the FONASA rate overridden to `tasa`: main marks the line and shows the rate applied. */
+function conFonasa(tasa: string, overrides: Overrides = { fonasaTasa: tasa }): ReciboDetalle {
   const base = detalle()
-  const lineas: Linea[] = base.lineas.map((l) =>
-    l.codigo === 'FONASA' && entradas.overrides?.fonasaTasa
-      ? { ...l, cantidad: entradas.overrides.fonasaTasa, override: true }
-      : l,
-  )
-  const totales = { ...base.totales, liquido }
-  return detalle({ entradas, lineas, totales, estado, impresion: { ...base.impresion, lineas, totales } })
+  const lineas: Linea[] = base.lineas.map((l) => (l.codigo === 'FONASA' ? { ...l, cantidad: tasa, override: true } : l))
+  return detalle({ entradas: { ...ENTRADAS_VACIAS, overrides }, lineas, impresion: { ...base.impresion, lineas } })
 }
 
-const ok = <T,>(data: T): ApiResult<T> => ({ ok: true, data })
-
+/** `actualizarRecibo` answers the unchanged recibo unless a test sets its own answers. */
 function setup(inicial: ReciboDetalle | ApiResult<ReciboDetalle> = detalle(), autosaveMs = 20) {
-  const obtenerRecibo = vi.fn().mockResolvedValue('ok' in inicial ? inicial : ok(inicial))
-  const actualizarRecibo = vi
-    .fn()
-    .mockImplementation(({ entradas }: { entradas: ReciboEntradas }) => Promise.resolve(ok(respuesta(entradas))))
-  window.api = { liquidaciones: { obtenerRecibo, actualizarRecibo } } as unknown as Api
+  const { obtenerRecibo, actualizarRecibo } = instalarApi({
+    liquidaciones: {
+      obtenerRecibo: vi.fn().mockResolvedValue('ok' in inicial ? inicial : ok(inicial)),
+      actualizarRecibo: vi.fn().mockResolvedValue(ok(detalle())),
+    },
+  }).liquidaciones
   const user = userEvent.setup()
   renderWithProviders(
     [
@@ -56,15 +52,13 @@ function setup(inicial: ReciboDetalle | ApiResult<ReciboDetalle> = detalle(), au
   return { obtenerRecibo, actualizarRecibo, user }
 }
 
-const guardadas = (fn: ReturnType<typeof vi.fn>) =>
+const guardadas = (fn: Mock) =>
   fn.mock.calls.map(([input]) => (input as { entradas: ReciboEntradas }).entradas)
 
 // Autosave round trips are slower than the 1 s default on a cold, loaded test run.
 configure({ asyncUtilTimeout: 4000 })
 
-afterEach(() => {
-  delete (window as { api?: Api }).api
-})
+afterEach(quitarApi)
 
 describe('ReciboEditorPage', { timeout: 15_000 }, () => {
   it('loads the recibo, lists computed lines and shows the preview with original and copy', async () => {
@@ -75,7 +69,7 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
     expect(screen.getByText('Recibo del período 08/2024')).toBeInTheDocument()
 
     const fonasa = screen.getByTestId('linea-auto-FONASA')
-    expect(fonasa).toHaveTextContent('8 %')
+    expect(fonasa).toHaveTextContent('8%')
     expect(fonasa).toHaveTextContent('2.400,00')
     expect(fonasa).toHaveTextContent('Calculado: 8 %')
     // IRPF is 0 and omitted by main, but it still gets an override control.
@@ -88,6 +82,9 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
 
   it('autosaves días no trabajados and shows the recomputed totals from main', async () => {
     const { actualizarRecibo, user } = setup()
+    actualizarRecibo.mockResolvedValue(
+      ok(detalle({ entradas: { ...ENTRADAS_VACIAS, diasNoTrabajados: 2 }, totales: { ...reciboCarmona.totales, liquido: 2_000_000 } })),
+    )
     const dias = await screen.findByLabelText('Días no trabajados')
 
     await user.clear(dias)
@@ -101,6 +98,7 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
 
   it('debounces bursts of edits into a single save of the latest value', async () => {
     const { actualizarRecibo, user } = setup(detalle(), 300)
+    actualizarRecibo.mockResolvedValue(ok(conFonasa('0.065')))
     const input = await screen.findByLabelText('Ajuste FONASA')
 
     await user.type(input, '6,5')
@@ -112,11 +110,12 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
 
   it('marks an overridden line and restaurar removes the override', async () => {
     const { actualizarRecibo, user } = setup()
+    actualizarRecibo.mockResolvedValueOnce(ok(conFonasa('0.06'))).mockResolvedValueOnce(ok(detalle()))
     await user.type(await screen.findByLabelText('Ajuste FONASA'), '6')
 
     await waitFor(() => expect(actualizarRecibo).toHaveBeenCalledWith({ id: 5, entradas: { ...ENTRADAS_VACIAS, overrides: { fonasaTasa: '0.06' } } }))
     const fonasa = screen.getByTestId('linea-auto-FONASA')
-    await waitFor(() => expect(fonasa).toHaveTextContent('6 %'))
+    await waitFor(() => expect(fonasa).toHaveTextContent('6%'))
     expect(within(fonasa).getByText('Modificado')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Restaurar FONASA' }))
@@ -127,8 +126,8 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
   })
 
   it('restaurar keeps the other overrides', async () => {
-    const entradas: ReciboEntradas = { ...ENTRADAS_VACIAS, overrides: { fonasaTasa: '0.06', irpfImporte: 50_000 } }
-    const { actualizarRecibo, user } = setup(respuesta(entradas))
+    const { actualizarRecibo, user } = setup(conFonasa('0.06', { fonasaTasa: '0.06', irpfImporte: 50_000 }))
+    actualizarRecibo.mockResolvedValue(ok(conFonasa('0.06')))
 
     expect(await screen.findByLabelText('Ajuste IRPF')).toHaveValue('500,00')
     expect(screen.getByLabelText('Ajuste FONASA')).toHaveValue('6')
@@ -188,7 +187,7 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
       ],
       overrides: { fonasaTasa: '0.06' },
     }
-    const { actualizarRecibo } = setup(respuesta(entradas, 2_000_000, 'emitida'))
+    const { actualizarRecibo } = setup({ ...conFonasa('0.06'), entradas, estado: 'emitida' })
 
     expect(await screen.findByText('Emitida · solo lectura')).toBeInTheDocument()
     expect(screen.getByLabelText('Días no trabajados')).toBeDisabled()
@@ -206,10 +205,7 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
 
   it('switches to read-only when a save is rejected because the liquidación was emitida', async () => {
     const { obtenerRecibo, actualizarRecibo, user } = setup()
-    actualizarRecibo.mockResolvedValue({
-      ok: false,
-      error: { code: 'LIQUIDACION_EMITIDA', message: 'La liquidación está emitida' },
-    })
+    actualizarRecibo.mockResolvedValue(err('LIQUIDACION_EMITIDA', 'La liquidación está emitida'))
     obtenerRecibo.mockResolvedValue(ok(detalle({ estado: 'emitida' })))
 
     await user.type(await screen.findByLabelText('Ajuste FRL'), '1')
@@ -223,7 +219,7 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
 
   it('shows other save errors and keeps the edit', async () => {
     const { actualizarRecibo, user } = setup()
-    actualizarRecibo.mockResolvedValue({ ok: false, error: { code: 'INTERNO', message: 'Falló el guardado' } })
+    actualizarRecibo.mockResolvedValue(err('INTERNO', 'Falló el guardado'))
 
     await user.type(await screen.findByLabelText('Ajuste Montepío'), '10')
 
@@ -242,13 +238,12 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
   })
 
   it('shows the load error', async () => {
-    setup({ ok: false, error: { code: 'NO_ENCONTRADO', message: 'Recibo no encontrado' } })
+    setup(err('NO_ENCONTRADO', 'Recibo no encontrado'))
     expect(await screen.findByRole('alert')).toHaveTextContent('Recibo no encontrado')
   })
 
   it('rejects an invalid id without calling the API', () => {
-    const obtenerRecibo = vi.fn()
-    window.api = { liquidaciones: { obtenerRecibo } } as unknown as Api
+    const { obtenerRecibo } = instalarApi({ liquidaciones: { obtenerRecibo: vi.fn() } }).liquidaciones
     renderWithProviders(
       [{ path: '/liquidaciones/:liquidacionId/recibos/:reciboId', element: <ReciboEditorPage /> }],
       '/liquidaciones/3/recibos/abc',
