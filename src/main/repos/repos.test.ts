@@ -166,6 +166,18 @@ describe('parametrosRepo', () => {
     expect(db.$client.prepare('select count(*) as n from irpf_franjas').get()).toEqual({ n: 1 })
     expectAppError(() => repo.replace({ ...PARAMETROS_2026, vigenteDesde: '2030-01-01' }), 'NO_ENCONTRADO')
   })
+
+  it('sorts franjas as decimals, beyond float precision', () => {
+    const replaced = parametrosRepo(db).replace({
+      ...PARAMETROS_2026,
+      franjas: [
+        { desdeBpc: '0', hastaBpc: '7', tasa: '0' },
+        { desdeBpc: '7.00000000000000001', hastaBpc: null, tasa: '0.2' },
+        { desdeBpc: '7', hastaBpc: '7.00000000000000001', tasa: '0.1' },
+      ],
+    })
+    expect(replaced.franjas.map((f) => f.desdeBpc)).toEqual(['0', '7', '7.00000000000000001'])
+  })
 })
 
 describe('liquidacionesRepo', () => {

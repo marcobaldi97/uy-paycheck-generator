@@ -1,3 +1,4 @@
+import Decimal from 'decimal.js'
 import { asc, desc, eq, lte } from 'drizzle-orm'
 import { AppError } from '@shared/api'
 import type { FranjaIrpf, IsoDate, Parametros, ParametrosVersion } from '@shared/types'
@@ -30,9 +31,9 @@ function scalars(v: ParametrosVersion): Parametros {
   }
 }
 
-/** Brackets sorted numerically by desdeBpc (they are stored as decimal strings). */
+/** Brackets sorted by desdeBpc as decimals (stored as strings), the same order the engine uses. */
 function sortFranjas(franjas: FranjaIrpf[]): FranjaIrpf[] {
-  return [...franjas].sort((a, b) => Number(a.desdeBpc) - Number(b.desdeBpc))
+  return [...franjas].sort((a, b) => new Decimal(a.desdeBpc).comparedTo(b.desdeBpc))
 }
 
 export function parametrosRepo(db: Conn = getDb()) {
