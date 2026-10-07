@@ -1,38 +1,21 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { API_METHODS, channel, type ApiResult } from '@shared/api'
-import type { Liquidacion, LiquidacionDetalle } from '@shared/types'
-import { setDb } from '../../db/connection'
-import { openTestDb } from '../../db/testing'
+// IPC wiring for liquidaciones. The state rules and numbers are tested in
+// src/main/services/liquidaciones.test.ts; here only registration, validation, `{ ok, data }`
+// results and AppError mapping.
+
+import { describe, expect, it, vi } from 'vitest'
+import { API_METHODS, channel } from '@shared/api'
 import { trabajadoresRepo } from '../../repos/trabajadores'
-import { register } from '../liquidaciones'
+import * as liquidaciones from '../liquidaciones'
+import { canales, invocar, ok, usarIpc } from './harness'
 
-type Listener = (event: unknown, raw: unknown) => Promise<ApiResult<unknown>>
-const { handlers } = vi.hoisted(() => ({ handlers: new Map<string, Listener>() }))
+vi.mock('electron', () => import('./harness').then((m) => m.electronMock))
+usarIpc(liquidaciones)
 
-vi.mock('electron', () => ({
-  ipcMain: {
-    handle: (name: string, fn: Listener) => handlers.set(name, fn),
-  },
-}))
-
-
-function invoke<T>(method: string, input?: unknown): Promise<ApiResult<T>> {
-  const fn = handlers.get(channel('liquidaciones', method))
-  if (!fn) throw new Error(`no handler for ${method}`)
-  return fn({}, input) as Promise<ApiResult<T>>
-}
-
-beforeEach(() => {
-  handlers.clear()
-  setDb(openTestDb())
-  register()
-})
-
-afterEach(() => setDb(null))
+const MARZO = { periodo: '2026-03', fechaCargo: '2026-03-31', fechaPago: '2026-04-05' }
 
 describe('liquidaciones IPC', () => {
   it('registers every method of the domain', () => {
-    expect([...handlers.keys()].sort()).toEqual(
+    expect(canales()).toEqual(
       Object.keys(API_METHODS.liquidaciones)
         .map((m) => channel('liquidaciones', m))
         .sort(),
@@ -40,13 +23,16 @@ describe('liquidaciones IPC', () => {
   })
 
   it('validates input and maps domain errors', async () => {
-    const invalid = await invoke('crear', { periodo: '2026-13', fechaCargo: '2026-03-31', fechaPago: '2026-04-05' })
+    const invalid = await invocar('liquidaciones', 'crear', { ...MARZO, periodo: '2026-13' })
     expect(invalid).toMatchObject({ ok: false, error: { code: 'VALIDACION' } })
 
-    const sinTrabajadores = await invoke('crear', { periodo: '2026-03', fechaCargo: '2026-03-31', fechaPago: '2026-04-05' })
+    const sinTrabajadores = await invocar('liquidaciones', 'crear', MARZO)
     expect(sinTrabajadores).toMatchObject({ ok: false, error: { code: 'SIN_TRABAJADORES_ACTIVOS' } })
 
-    expect(await invoke('obtener', { id: 42 })).toMatchObject({ ok: false, error: { code: 'NO_ENCONTRADO' } })
+    expect(await invocar('liquidaciones', 'obtener', { id: 42 })).toMatchObject({
+      ok: false,
+      error: { code: 'NO_ENCONTRADO' },
+    })
   })
 
   it('runs the draft flow end to end', async () => {
@@ -71,15 +57,12 @@ describe('liquidaciones IPC', () => {
       irpfOtrasDeducciones: 0,
     })
 
-    const created = await invoke<Liquidacion>('crear', {
-      periodo: '2026-03',
-      fechaCargo: '2026-03-31',
-      fechaPago: '2026-04-05',
+    const created = await ok('liquidaciones', 'crear', MARZO)
+    const det = await invocar('liquidaciones', 'recalcular', { id: created.id })
+    expect(det).toMatchObject({ ok: true, data: { liquidacion: { id: created.id, estado: 'borrador' } } })
+    expect(await invocar('liquidaciones', 'listar')).toMatchObject({
+      ok: true,
+      data: [{ periodo: '2026-03', cantidadRecibos: 1 }],
     })
-    if (!created.ok) throw new Error(created.error.message)
-    const det = await invoke<LiquidacionDetalle>('recalcular', { id: created.data.id })
-    expect(det).toMatchObject({ ok: true, data: { liquidacion: { estado: 'borrador' } } })
-    const listed = await invoke('listar')
-    expect(listed).toMatchObject({ ok: true, data: [{ periodo: '2026-03', cantidadRecibos: 1 }] })
   })
 })
