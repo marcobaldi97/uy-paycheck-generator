@@ -2,6 +2,7 @@
 // Every legal value comes from `parametros` and `franjas`; nothing here is hardcoded law.
 
 import Decimal from 'decimal.js'
+import { importeLineaManual } from '@shared/conceptos'
 import { fromCents } from '@shared/money'
 import type {
   Cents,
@@ -73,6 +74,8 @@ type LineaSinOrden = Omit<Linea, 'orden'>
  *   is withheld (as printed on the receipt; the IRPF itself is computed from the full taxed amount).
  * - Line `cantidad` holds days for días no trabajados and the applied rate (e.g. "0.15")
  *   for montepío, FONASA and FRL, whose `valorUnitario` is the base amount.
+ * - A manual line with both `cantidad` and `valorUnitario` is worth their product (half-up to
+ *   cents), whatever its typed `importe`.
  * - IRPF and redondeo lines are omitted when their amount is 0.
  */
 export function calcularRecibo(input: CalcularReciboInput): CalcularReciboResultado {
@@ -114,7 +117,7 @@ export function calcularRecibo(input: CalcularReciboInput): CalcularReciboResult
     descripcion: m.descripcion,
     cantidad: m.cantidad,
     valorUnitario: m.valorUnitario,
-    importe: m.importe,
+    importe: importeLineaManual(m),
     tipo: m.tipo,
     origen: 'manual',
     override: false,

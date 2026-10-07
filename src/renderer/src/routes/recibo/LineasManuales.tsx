@@ -1,7 +1,9 @@
 // Manual receipt lines: free description, haber/descuento, optional cantidad and unit value,
-// the amount, and whether it is taxed by BPS / IRPF. The amount is entered, not computed.
+// the amount, and whether it is taxed by BPS / IRPF. With both cantidad and unit value the
+// amount is their product (read-only); otherwise it is typed.
 
 import { ActionIcon, Button, Checkbox, Group, Paper, Select, Stack, Text, TextInput } from '@mantine/core'
+import { esImporteCalculado, importeLineaManual } from '@shared/conceptos'
 import type { DecimalString, LineaManual, TipoConcepto } from '@shared/types'
 import { useState } from 'react'
 import { MoneyInput } from '../../components/MoneyInput'
@@ -80,6 +82,10 @@ interface FilaProps {
 
 function LineaManualFila({ index, linea, disabled, onChange, onRemove }: FilaProps) {
   const n = index + 1
+  // Keep the stored importe in step with cantidad × valor unitario; main computes it the same way.
+  const cambiarFactor = (patch: Pick<Partial<LineaManual>, 'cantidad' | 'valorUnitario'>) =>
+    onChange({ ...patch, importe: importeLineaManual({ ...linea, ...patch }) })
+  const calculado = esImporteCalculado(linea)
   return (
     <Paper withBorder p="sm" aria-label={`Línea manual ${n}`} role="group">
       <Stack gap="xs">
@@ -122,22 +128,26 @@ function LineaManualFila({ index, linea, disabled, onChange, onRemove }: FilaPro
             label="Cantidad"
             aria-label={`Cantidad línea ${n}`}
             value={linea.cantidad}
-            onChange={(cantidad) => onChange({ cantidad })}
+            onChange={(cantidad) => cambiarFactor({ cantidad })}
             disabled={disabled}
           />
           <MoneyInput
             label="Valor unitario"
             aria-label={`Valor unitario línea ${n}`}
             value={linea.valorUnitario}
-            onChange={(valorUnitario) => onChange({ valorUnitario })}
+            onChange={(valorUnitario) => cambiarFactor({ valorUnitario })}
             disabled={disabled}
           />
           <MoneyInput
             label="Importe"
             aria-label={`Importe línea ${n}`}
+            description={calculado ? 'Cantidad × valor unitario' : undefined}
+            // Below the input, so the three inputs of the row stay aligned.
+            inputWrapperOrder={['label', 'input', 'description', 'error']}
             value={linea.importe}
             // Importe is required: clearing the field keeps the last value.
             onChange={(importe) => importe !== null && onChange({ importe })}
+            readOnly={calculado}
             disabled={disabled}
           />
         </Group>

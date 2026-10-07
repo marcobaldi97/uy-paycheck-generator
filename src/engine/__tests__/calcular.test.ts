@@ -197,4 +197,20 @@ describe('calcularRecibo', () => {
     expect(r.liquido).toBe(2_691_700)
     expect(r.totalHaberes - r.totalDescuentos).toBe(r.liquido)
   })
+
+  it('manual lines with cantidad and valor unitario are worth their product', () => {
+    const r = calcular({
+      condiciones: condiciones({ sueldoNominal: 3_000_000 }),
+      lineasManuales: [
+        // A stale typed importe is ignored.
+        { descripcion: 'Horas extra', tipo: 'haber', cantidad: '4', valorUnitario: 25_000, importe: 1, gravadoBps: true, gravadoIrpf: true },
+        { descripcion: 'Comidas', tipo: 'descuento', cantidad: '2.5', valorUnitario: 33_333, importe: 0, gravadoBps: false, gravadoIrpf: false },
+      ],
+    })
+    const manual = (descripcion: string) => r.lineas.find((l) => l.descripcion === descripcion)
+    expect(manual('Horas extra')).toMatchObject({ cantidad: '4', valorUnitario: 25_000, importe: 100_000 })
+    expect(manual('Comidas')?.importe).toBe(83_333) // 833,325 → 833,33
+    expect(r.imponibleBps).toBe(3_100_000)
+    expect(r.totalHaberes - r.totalDescuentos).toBe(r.liquido)
+  })
 })
