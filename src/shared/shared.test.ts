@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { esTasa, OVERRIDE_POR_CODIGO, tieneOverrides } from './conceptos'
+import { esImporteCalculado, esTasa, importeLineaManual, OVERRIDE_POR_CODIGO, tieneOverrides } from './conceptos'
 import { casoFonasa } from './fonasa'
 import { fechaResolucion } from './periodo'
 
@@ -19,6 +19,15 @@ describe('conceptos', () => {
     expect(esTasa('IRPF')).toBe(false)
     expect(esTasa('DIAS_NO_TRABAJADOS')).toBe(false)
     expect(esTasa(null)).toBe(false)
+  })
+
+  it('importeLineaManual is cantidad × valor unitario when both are set', () => {
+    expect(importeLineaManual({ cantidad: '4', valorUnitario: 25_000, importe: 1 })).toBe(100_000)
+    expect(importeLineaManual({ cantidad: '2.5', valorUnitario: 33_333, importe: 0 })).toBe(83_333) // half-up
+    expect(importeLineaManual({ cantidad: null, valorUnitario: 25_000, importe: 7 })).toBe(7)
+    expect(importeLineaManual({ cantidad: '4', valorUnitario: null, importe: 7 })).toBe(7)
+    expect(esImporteCalculado({ cantidad: '4', valorUnitario: 25_000 })).toBe(true)
+    expect(esImporteCalculado({ cantidad: '4', valorUnitario: null })).toBe(false)
   })
 
   it('maps overridable lines to their override key', () => {

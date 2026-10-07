@@ -182,6 +182,33 @@ describe('ReciboEditorPage', { timeout: 15_000 }, () => {
     expect(screen.getByText('Sin líneas manuales.')).toBeInTheDocument()
   })
 
+  it('computes a manual line importe from cantidad × valor unitario and locks it', async () => {
+    const { actualizarRecibo, user } = setup()
+    await user.click(await screen.findByRole('button', { name: 'Agregar línea' }))
+    await user.type(screen.getByLabelText('Descripción línea 1'), 'Horas extra')
+    const importe = screen.getByLabelText('Importe línea 1')
+
+    await user.type(screen.getByLabelText('Cantidad línea 1'), '4')
+    expect(importe).not.toHaveAttribute('readonly')
+    await user.type(screen.getByLabelText('Valor unitario línea 1'), '250')
+
+    expect(importe).toHaveValue('1.000,00')
+    expect(importe).toHaveAttribute('readonly')
+    expect(screen.getByText('Cantidad × valor unitario')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(guardadas(actualizarRecibo).at(-1)?.lineasManuales[0]).toMatchObject({
+        cantidad: '4',
+        valorUnitario: 25_000,
+        importe: 100_000,
+      }),
+    )
+
+    // Without cantidad the importe keeps the last value and is typed again.
+    await user.clear(screen.getByLabelText('Cantidad línea 1'))
+    expect(importe).toHaveValue('1.000,00')
+    expect(importe).not.toHaveAttribute('readonly')
+  })
+
   it('is read-only when the liquidación is emitida', async () => {
     const entradas: ReciboEntradas = {
       diasNoTrabajados: 1,
