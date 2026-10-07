@@ -2,9 +2,10 @@
 // the amount, and whether it is taxed by BPS / IRPF. The amount is entered, not computed.
 
 import { ActionIcon, Button, Checkbox, Group, Paper, Select, Stack, Text, TextInput } from '@mantine/core'
-import type { LineaManual, TipoConcepto } from '@shared/types'
+import type { DecimalString, LineaManual, TipoConcepto } from '@shared/types'
 import { useState } from 'react'
 import { MoneyInput } from '../../components/MoneyInput'
+import { TextoParseadoInput } from '../../components/TextoParseadoInput'
 import { formatDecimal } from '../../format'
 import { nuevaLineaManual, parseCantidad } from './entradas'
 
@@ -162,43 +163,12 @@ function LineaManualFila({ index, linea, disabled, onChange, onRemove }: FilaPro
 interface CantidadInputProps {
   label: string
   'aria-label': string
-  value: string | null
-  onChange: (value: string | null) => void
+  value: DecimalString | null
+  onChange: (value: DecimalString | null) => void
   disabled: boolean
 }
 
 /** Optional decimal ("2,5"). Invalid text shows an error and isn't propagated. */
-function CantidadInput({ value, onChange, ...props }: CantidadInputProps) {
-  const [text, setText] = useState(() => formatDecimal(value))
-  const [invalid, setInvalid] = useState(false)
-  const [prevValue, setPrevValue] = useState(value)
-  if (value !== prevValue) {
-    setPrevValue(value)
-    if (parseCantidad(text) !== value) {
-      setText(formatDecimal(value))
-      setInvalid(false)
-    }
-  }
-
-  return (
-    <TextInput
-      {...props}
-      inputMode="decimal"
-      autoComplete="off"
-      styles={{ input: { textAlign: 'right' } }}
-      value={text}
-      error={invalid ? 'Número inválido' : undefined}
-      onChange={(e) => {
-        const next = e.currentTarget.value
-        setText(next)
-        const parsed = parseCantidad(next)
-        setInvalid(parsed === undefined)
-        if (parsed !== undefined && parsed !== value) onChange(parsed)
-      }}
-      onBlur={() => {
-        setText(formatDecimal(value))
-        setInvalid(false)
-      }}
-    />
-  )
+function CantidadInput(props: CantidadInputProps) {
+  return <TextoParseadoInput {...props} parse={parseCantidad} format={formatDecimal} mensajeInvalido="Número inválido" />
 }
