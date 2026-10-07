@@ -21,8 +21,15 @@ win:
     - target: nsis
       arch: [x64]
 portable:
-  artifactName: ${productName}-${version}-portable.${ext}
+  artifactName: Recibos-de-sueldo-${version}-portable.${ext}
 nsis:
-  artifactName: ${productName}-${version}-setup.${ext}
+  artifactName: Recibos-de-sueldo-${version}-setup.${ext}
   oneClick: false
   allowToChangeInstallationDirectory: true
+# Writes resources/app-update.yml and dist/latest.yml for electron-updater. CI uploads the
+# files itself (--publish never); artifact names have no spaces so latest.yml matches the
+# asset names on GitHub.
+publish:
+  provider: github
+  owner: marcobaldi97
+  repo: uy-paycheck-generator

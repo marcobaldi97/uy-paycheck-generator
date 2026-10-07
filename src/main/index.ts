@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { initDb } from './db/client'
 import { loadRenderer, secureWebPreferences } from './lib/window'
+import { buscarActualizaciones } from './updater'
 
 /** Every file in ./ipc exports `register()`, which calls `handle()` for its methods. */
 interface IpcModule {
@@ -48,5 +49,6 @@ if (!app.requestSingleInstanceLock()) {
     await initDb()
     for (const module of Object.values(ipcModules)) module.register()
     createMainWindow()
+    if (mainWindow) buscarActualizaciones(mainWindow)
   })
 }

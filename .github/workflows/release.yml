@@ -60,4 +60,4 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "${{ steps.version.outputs.tag }}" \
             --generate-notes \
-            dist/*-portable.exe dist/*-setup.exe
+            dist/*-portable.exe dist/*-setup.exe dist/*-setup.exe.blockmap dist/latest.yml
