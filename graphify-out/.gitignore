@@ -1,0 +1,5 @@
+# Local graphify state: per-machine paths, extraction cache and token log.
+cache/
+.graphify_python
+.graphify_root
+cost.json
